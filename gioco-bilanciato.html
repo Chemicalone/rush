@@ -700,6 +700,39 @@ const CHARACTERS = {
 const ENEMIES_ORDER = [1,2,3,4,5,6,7];
 
 // =====================================================
+// AUDIO SYSTEM
+// =====================================================
+const BATTLE_MUSIC = {
+  1: '30__Black_Knife__DELTARUNE_Chapter_3_4_Soundtrack__-_Toby_Fox__1_.mp3',
+  2: 'TOKYOVANIA_2024.mp3',
+  3: 'Credit_song_for_my_death_Boss_fight_-I_wont_let_you_go.mp3',
+  4: 'boss_battle_against_that_random_npc_you_had_no_idea_was_going_to_be_a_boss.mp3',
+  5: 'Hammer_of_Justice_-_ULTIMATE_ORCHESTRA_Version__Deltarune_Chapter_3_4_Secret_Boss_.mp3',
+  6: 'Creator.mp3',
+  7: 'dont_leave__please.mp3',
+};
+
+let battleAudio = null;
+
+function playBattleMusic(enemyId) {
+  stopBattleMusic();
+  const src = BATTLE_MUSIC[enemyId];
+  if (!src) return;
+  battleAudio = new Audio(src);
+  battleAudio.loop = true;
+  battleAudio.volume = 0.6;
+  battleAudio.play().catch(() => {});
+}
+
+function stopBattleMusic() {
+  if (battleAudio) {
+    battleAudio.pause();
+    battleAudio.currentTime = 0;
+    battleAudio = null;
+  }
+}
+
+// =====================================================
 // GAME STATE
 // =====================================================
 let state = {
@@ -879,6 +912,7 @@ function startBattle(enemyId) {
 
   renderBattle();
   showScreen('screen-battle');
+  playBattleMusic(enemyId);
 }
 
 function log(text, cls='') {
@@ -1489,6 +1523,7 @@ function tickEnemyTimers() {
 // =====================================================
 function endBattle(playerWon) {
   battle.active = false;
+  stopBattleMusic();
   document.querySelectorAll('.move-btn').forEach(b => b.disabled = true);
   document.getElementById('turn-indicator').textContent = '';
 
