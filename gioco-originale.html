@@ -913,7 +913,9 @@ function startBattle(enemyId) {
   renderBattle();
   showScreen('screen-battle');
   playBattleMusic(enemyId);
-}text, cls='') {
+}
+
+function log(text, cls='') {
   const div = document.createElement('div');
   div.className = 'log-line ' + cls;
   div.textContent = text;
