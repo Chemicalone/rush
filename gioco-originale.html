@@ -1509,6 +1509,159 @@ function endBattle(playerWon) {
   document.getElementById('post-battle-btns').style.display = 'flex';
   updateHPBars();
 }
+
+// =====================================================
+// EASTER EGG — QUESTION MARK UNLOCK
+// Keyboard: ↑↑↓↓←→←→BA
+// Touch:    swipe ↑↑↓↓←→←→ + 2 tap rapidi
+// =====================================================
+
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+let konamiIdx = 0;
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === KONAMI[konamiIdx]) {
+    konamiIdx++;
+    if (konamiIdx === KONAMI.length) {
+      konamiIdx = 0;
+      activateQuestionMark();
+    }
+  } else {
+    konamiIdx = e.key === KONAMI[0] ? 1 : 0;
+  }
+});
+
+// Touch swipe detection
+const SWIPE_SEQ = ['up','up','down','down','left','right','left','right'];
+let swipeIdx = 0;
+let tapCount = 0;
+let tapTimer = null;
+let touchStartX = 0, touchStartY = 0;
+
+document.addEventListener('touchstart', (e) => {
+  touchStartX = e.changedTouches[0].clientX;
+  touchStartY = e.changedTouches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  const absDx = Math.abs(dx), absDy = Math.abs(dy);
+
+  if (absDx < 10 && absDy < 10) {
+    // It's a tap
+    if (swipeIdx === SWIPE_SEQ.length) {
+      tapCount++;
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => { tapCount = 0; }, 800);
+      if (tapCount >= 2) {
+        tapCount = 0; swipeIdx = 0;
+        activateQuestionMark();
+      }
+    } else {
+      swipeIdx = 0; tapCount = 0;
+    }
+    return;
+  }
+
+  // Determine swipe direction
+  let dir;
+  if (absDx > absDy) dir = dx > 0 ? 'right' : 'left';
+  else dir = dy > 0 ? 'down' : 'up';
+
+  if (dir === SWIPE_SEQ[swipeIdx]) {
+    swipeIdx++;
+  } else {
+    swipeIdx = dir === SWIPE_SEQ[0] ? 1 : 0;
+  }
+}, { passive: true });
+
+// ---- Unlock logic (session only, no persistence) ----
+let qmarkUnlocked = false;
+
+function activateQuestionMark() {
+  if (qmarkUnlocked) {
+    showQMarkToast('❓ Question Mark già attivo in questa sessione!');
+    return;
+  }
+  qmarkUnlocked = true;
+  showQMarkToast('👁️ ???\nUn\'entità sconosciuta ha risposto alla tua chiamata...\nQuestion Mark sbloccato!');
+
+  // If we're on char select, refresh it
+  if (document.getElementById('screen-charselect').classList.contains('active')) {
+    renderCharSelect();
+  }
+}
+
+function isQMarkUnlocked() {
+  return qmarkUnlocked;
+}
+
+// Override renderCharSelect to include ? if unlocked
+const _origRenderCharSelect = renderCharSelect;
+renderCharSelect = function() {
+  _origRenderCharSelect();
+  if (isQMarkUnlocked()) {
+    addQuestionMarkCard();
+  }
+};
+
+function addQuestionMarkCard() {
+  const grid = document.getElementById('char-grid');
+  if (!grid || document.getElementById('charcard-99')) return;
+
+  const div = document.createElement('div');
+  div.className = 'char-card';
+  div.id = 'charcard-99';
+  div.style.borderColor = 'rgba(201,168,76,0.6)';
+  div.style.background = 'rgba(20,15,5,0.9)';
+  div.onclick = () => selectChar(99);
+  div.innerHTML = `
+    <div class="char-icon" style="filter:drop-shadow(0 0 12px gold)">❓</div>
+    <div class="char-name" style="color:var(--gold-light)">???</div>
+    <div class="char-hp-label">HP: <span class="char-hp-val">9999</span></div>
+    <div class="char-moves">Riscrittura dell'essere · Carezza · Ripristino Assoluto · Attesa</div>
+    <div class="tooltip">Un'entità al di là della comprensione. Le regole non si applicano.</div>
+    <span class="tag-new">SECRET</span>
+  `;
+  grid.appendChild(div);
+
+  // Register the character
+  CHARACTERS[99] = {
+    id:99, name:'???', icon:'❓',
+    hpMax: 9999,
+    moves: ["Riscrittura dell'essere", 'Carezza', 'Ripristino Assoluto', 'Attesa'],
+    desc: "Un'entità al di là della comprensione. Le regole non si applicano.",
+  };
+}
+
+// ---- Toast notification ----
+function showQMarkToast(msg) {
+  let toast = document.getElementById('qmark-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'qmark-toast';
+    toast.style.cssText = `
+      position:fixed; bottom:2rem; left:50%; transform:translateX(-50%) translateY(80px);
+      background:rgba(10,8,5,0.97); border:1px solid var(--gold);
+      color:var(--gold-light); font-family:'Crimson Pro',serif; font-size:0.9rem;
+      padding:1rem 2rem; text-align:center; z-index:9999; max-width:320px;
+      box-shadow: 0 0 40px rgba(201,168,76,0.4);
+      transition: transform 0.5s cubic-bezier(.22,1,.36,1), opacity 0.5s ease;
+      opacity:0; white-space:pre-line; line-height:1.7;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  requestAnimationFrame(() => {
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    toast.style.opacity = '1';
+  });
+  setTimeout(() => {
+    toast.style.transform = 'translateX(-50%) translateY(80px)';
+    toast.style.opacity = '0';
+  }, 4000);
+}
 </script>
 </body>
 </html>
