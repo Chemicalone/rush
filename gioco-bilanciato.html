@@ -1622,9 +1622,9 @@ function activateQuestionMark() {
   qmarkUnlocked = true;
   showQMarkToast('👁️ ???\nUn\'entità sconosciuta ha risposto alla tua chiamata...\nQuestion Mark sbloccato!');
 
-  // If we're on char select, refresh it
+  // If we're on char select, add the card directly without resetting selection
   if (document.getElementById('screen-charselect').classList.contains('active')) {
-    renderCharSelect();
+    addQuestionMarkCard();
   }
 }
 
