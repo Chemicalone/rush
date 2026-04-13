@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arena dei Destini</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap');
+
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #f0d080;
+    --crimson: #8b1a1a;
+    --deep: #0a0608;
+    --panel: rgba(10,6,8,0.85);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--deep);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Crimson Pro', serif;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Animated particle background */
+  canvas#particles {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Radial glow */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(139,26,26,0.18) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 3rem 2rem;
+    max-width: 700px;
+    width: 100%;
+  }
+
+  .emblem {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+    animation: pulse-glow 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px var(--gold));
+  }
+
+  @keyframes pulse-glow {
+    0%,100% { transform: scale(1); filter: drop-shadow(0 0 15px var(--gold)); }
+    50% { transform: scale(1.05); filter: drop-shadow(0 0 35px var(--gold-light)); }
+  }
+
+  h1 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    color: var(--gold-light);
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 40px rgba(201,168,76,0.5), 0 2px 8px rgba(0,0,0,0.8);
+    margin-bottom: 0.4rem;
+    animation: title-in 1s ease-out both;
+  }
+
+  .subtitle {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: rgba(201,168,76,0.6);
+    letter-spacing: 0.15em;
+    margin-bottom: 3rem;
+    animation: title-in 1s 0.2s ease-out both;
+  }
+
+  @keyframes title-in {
+    from { opacity:0; transform: translateY(-20px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+
+  .divider {
+    width: 200px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 0 auto 3rem;
+    animation: title-in 1s 0.3s ease-out both;
+  }
+
+  .choose-text {
+    font-size: 1rem;
+    color: rgba(240,208,128,0.5);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    animation: title-in 1s 0.4s ease-out both;
+  }
+
+  .cards {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: title-in 1s 0.5s ease-out both;
+  }
+
+  .card {
+    width: 270px;
+    background: var(--panel);
+    border: 1px solid rgba(201,168,76,0.3);
+    padding: 2.5rem 2rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(201,168,76,0.12) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .card:hover::before { opacity: 1; }
+
+  .card:hover {
+    transform: translateY(-6px);
+    border-color: var(--gold);
+    box-shadow: 0 8px 40px rgba(201,168,76,0.25), 0 0 0 1px rgba(201,168,76,0.1);
+  }
+
+  .card--original { border-color: rgba(139,26,26,0.5); }
+  .card--original::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--crimson), transparent);
+  }
+  .card--original:hover { border-color: #cc2222; box-shadow: 0 8px 40px rgba(139,26,26,0.35), 0 0 0 1px rgba(139,26,26,0.15); }
+
+  .card--balanced::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .card-icon {
+    font-size: 2.8rem;
+    margin-bottom: 1rem;
+    display: block;
+    filter: drop-shadow(0 0 12px currentColor);
+  }
+
+  .card-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1.1rem;
+    color: var(--gold-light);
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.05em;
+  }
+
+  .card--original .card-title { color: #ff6666; }
+
+  .card-desc {
+    font-size: 0.9rem;
+    color: rgba(240,208,128,0.55);
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .card-tag {
+    display: inline-block;
+    margin-top: 1.2rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.8rem;
+    border: 1px solid currentColor;
+    color: rgba(201,168,76,0.4);
+  }
+
+  .card--original .card-tag { color: rgba(204,34,34,0.5); }
+
+  .footer-note {
+    margin-top: 3rem;
+    font-size: 0.75rem;
+    color: rgba(201,168,76,0.25);
+    letter-spacing: 0.1em;
+    animation: title-in 1s 0.8s ease-out both;
+  }
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+
+<div class="container">
+  <div class="emblem">⚔️</div>
+  <h1>Arena dei Destini</h1>
+  <p class="subtitle">scegli il tuo destino, combattente</p>
+  <div class="divider"></div>
+  <p class="choose-text">Seleziona la modalità</p>
+
+  <div class="cards">
+    <a href="gioco-originale.html" class="card card--original">
+      <span class="card-icon" style="color:#ff4444">🔥</span>
+      <div class="card-title">Versione Originale</div>
+      <p class="card-desc">Il gioco come fu creato. Sbilanciato, brutale, imprevedibile. Solo i più forti sopravvivono.</p>
+      <span class="card-tag">Classico</span>
+    </a>
+
+    <a href="gioco-bilanciato.html" class="card card--balanced">
+      <span class="card-icon" style="color:#c9a84c">⚖️</span>
+      <div class="card-title">Versione Bilanciata</div>
+      <p class="card-desc">HP ribilanciati, danni calibrati, bug corretti. Un'esperienza più equa per ogni scontro.</p>
+      <span class="card-tag">v2.0</span>
+    </a>
+  </div>
+
+  <p class="footer-note">6 eroi · 1 boss finale · battaglie a turni</p>
+</div>
+
+<script>
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const particles = Array.from({length: 60}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    size: Math.random() * 1.5 + 0.3,
+    speed: Math.random() * 0.4 + 0.1,
+    opacity: Math.random() * 0.5 + 0.1,
+    drift: (Math.random() - 0.5) * 0.3,
+  }));
+
+  function animate() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p => {
+      p.y -= p.speed;
+      p.x += p.drift;
+      if (p.y < 0) { p.y = canvas.height; p.x = Math.random() * canvas.width; }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(201,168,76,${p.opacity})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
+  window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+</script>
+</body>
+</html>

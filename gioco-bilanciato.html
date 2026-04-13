@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arena dei Destini — Bilanciata</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+
+  :root {
+    --bg: #06040a;
+    --panel: rgba(12,8,18,0.92);
+    --border: rgba(201,168,76,0.4);
+    --accent: #c9a84c;
+    --accent-glow: rgba(201,168,76,0.3);
+    --gold: #c9a84c;
+    --gold-light: #f0d080;
+    --text: #e8dcc8;
+    --text-dim: rgba(232,220,200,0.5);
+    --hp-player: #44cc66;
+    --hp-enemy: #cc4444;
+    --log-bg: rgba(6,4,10,0.95);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    min-height: 100vh;
+    font-family: 'Crimson Pro', serif;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 40% at 50% 0%, rgba(139,26,26,0.1) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 100% at 50% 100%, rgba(20,10,30,0.5) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 900px;
+    padding: 1.2rem 1.5rem 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(139,26,26,0.3);
+  }
+
+  .header-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1rem;
+    color: var(--gold-light);
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 20px rgba(201,168,76,0.4);
+  }
+
+  .back-btn {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    transition: color 0.2s;
+    font-family: 'Crimson Pro', serif;
+  }
+  .back-btn:hover { color: var(--gold); }
+
+  /* ===== SCREENS ===== */
+  #app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 900px;
+    padding: 1.5rem;
+    flex: 1;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ===== SHARED TYPOGRAPHY ===== */
+  .section-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1.3rem;
+    color: var(--gold-light);
+    text-align: center;
+    margin-bottom: 0.4rem;
+    text-shadow: 0 0 20px rgba(201,168,76,0.4);
+  }
+
+  .section-sub {
+    text-align: center;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+  }
+
+  /* ===== CHARACTER GRID ===== */
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .char-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1.4rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .char-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .char-card:hover::after, .char-card.selected::after { transform: scaleX(1); }
+
+  .char-card:hover, .char-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--accent-glow);
+    transform: translateY(-3px);
+  }
+
+  .char-card.selected {
+    background: rgba(139,26,26,0.2);
+  }
+
+  .char-card.defeated {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .char-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .char-name {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.9rem;
+    color: var(--gold-light);
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.04em;
+  }
+  .char-hp-label { font-size: 0.75rem; color: var(--text-dim); }
+  .char-hp-val { color: var(--hp-player); font-weight: 600; }
+
+  .char-moves {
+    margin-top: 0.6rem;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .char-card.defeated::after {
+    content: '✓ SCONFITTO';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.5);
+    color: var(--gold);
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    transform: none !important;
+  }
+
+  /* ===== BATTLE SCREEN ===== */
+  .battle-arena {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .combatant {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1.2rem;
+    position: relative;
+  }
+
+  .combatant.player { border-color: rgba(68,204,102,0.4); }
+  .combatant.enemy  { border-color: rgba(204,68,68,0.4); }
+
+  .combatant-name {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.85rem;
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.06em;
+  }
+
+  .combatant.player .combatant-name { color: #88ff99; }
+  .combatant.enemy  .combatant-name { color: #ff8888; }
+
+  .hp-bar-wrap {
+    background: rgba(0,0,0,0.5);
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .hp-bar {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.5s ease;
+  }
+
+  .combatant.player .hp-bar { background: linear-gradient(90deg, #226633, #44cc66); }
+  .combatant.enemy  .hp-bar { background: linear-gradient(90deg, #662222, #cc4444); }
+
+  .hp-text {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+  .hp-text span { font-weight: 600; color: var(--text); }
+
+  .status-badges {
+    margin-top: 0.6rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 2px;
+    letter-spacing: 0.08em;
+    font-family: 'Crimson Pro', serif;
+  }
+
+  .badge-buf  { background: rgba(68,204,102,0.2); border: 1px solid rgba(68,204,102,0.4); color: #88ff99; }
+  .badge-debuf { background: rgba(204,68,68,0.2); border: 1px solid rgba(204,68,68,0.4); color: #ff8888; }
+
+  .vs-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel Decorative', serif;
+    color: var(--accent);
+    font-size: 1.2rem;
+    text-shadow: 0 0 20px var(--accent-glow);
+    grid-column: 1/-1;
+    margin: -0.5rem 0;
+  }
+
+  /* ===== BATTLE LOG ===== */
+  .battle-log {
+    background: var(--log-bg);
+    border: 1px solid rgba(201,168,76,0.15);
+    padding: 1rem 1.2rem;
+    height: 180px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+    scroll-behavior: smooth;
+  }
+
+  .battle-log::-webkit-scrollbar { width: 4px; }
+  .battle-log::-webkit-scrollbar-track { background: transparent; }
+  .battle-log::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 2px; }
+
+  .log-line { padding: 0.1rem 0; }
+  .log-line.player-action { color: #88ddff; }
+  .log-line.enemy-action  { color: #ff9988; }
+  .log-line.damage        { color: #ffcc44; }
+  .log-line.heal          { color: #88ff99; }
+  .log-line.system        { color: var(--text-dim); font-style: italic; }
+  .log-line.victory       { color: var(--gold-light); font-weight: 600; font-style: italic; font-size: 1rem; }
+  .log-line.defeat        { color: #ff4444; font-weight: 600; font-style: italic; font-size: 1rem; }
+  .log-line.separator     { color: rgba(201,168,76,0.2); text-align:center; }
+
+  /* ===== MOVES ===== */
+  .moves-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .move-btn {
+    background: var(--panel);
+    border: 1px solid rgba(201,168,76,0.2);
+    color: var(--text);
+    padding: 0.9rem 1rem;
+    cursor: pointer;
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.88rem;
+    text-align: left;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .move-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(201,168,76,0.08) 0%, transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .move-btn:hover::before { transform: translateX(0); }
+
+  .move-btn:hover:not(:disabled) {
+    border-color: var(--gold);
+    color: var(--gold-light);
+    transform: translateX(3px);
+  }
+
+  .move-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .move-num {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin-right: 0.4rem;
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: inline-block;
+    padding: 0.8rem 2.2rem;
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border: 1px solid var(--gold);
+    color: var(--gold-light);
+    background: transparent;
+    transition: all 0.25s ease;
+    text-decoration: none;
+  }
+
+  .btn:hover {
+    background: rgba(201,168,76,0.15);
+    box-shadow: 0 0 20px rgba(201,168,76,0.2);
+  }
+
+  .btn-danger {
+    border-color: var(--accent);
+    color: #ff8888;
+  }
+  .btn-danger:hover { background: rgba(139,26,26,0.2); }
+
+  .btn-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  /* ===== WORLD MAP ===== */
+  .world-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .world-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid rgba(139,26,26,0.3);
+  }
+
+  .player-info {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+  .player-info strong { color: var(--gold-light); font-style: normal; }
+
+  .progress-bar-wrap {
+    background: rgba(0,0,0,0.4);
+    height: 6px;
+    margin-top: 0.4rem;
+    position: relative;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--gold));
+    transition: width 0.5s ease;
+  }
+
+  .enemy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .enemy-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.15);
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    position: relative;
+  }
+
+  .enemy-card:hover:not(.locked):not(.beaten) {
+    border-color: var(--accent);
+    box-shadow: 0 0 15px var(--accent-glow);
+    transform: translateY(-2px);
+  }
+
+  .enemy-card.beaten {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .enemy-card.locked {
+    opacity: 0.2;
+    cursor: not-allowed;
+    filter: grayscale(1);
+  }
+
+  .enemy-card.boss {
+    border-color: rgba(201,168,76,0.5);
+    background: rgba(20,15,5,0.6);
+    animation: boss-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes boss-pulse {
+    0%,100% { box-shadow: 0 0 10px rgba(201,168,76,0.1); }
+    50% { box-shadow: 0 0 30px rgba(201,168,76,0.4); }
+  }
+
+  .enemy-icon { font-size: 2rem; margin-bottom: 0.4rem; }
+  .enemy-name {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.75rem;
+    color: var(--gold-light);
+    letter-spacing: 0.04em;
+  }
+
+  .enemy-status {
+    font-size: 0.65rem;
+    margin-top: 0.3rem;
+    letter-spacing: 0.1em;
+  }
+
+  .status-available { color: rgba(204,68,68,0.7); }
+  .status-beaten { color: var(--gold); }
+  .status-locked { color: var(--text-dim); }
+
+  /* Animations */
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .shake { animation: shake 0.3s ease; }
+
+  @keyframes flash-damage {
+    0%,100% { background: var(--panel); }
+    50% { background: rgba(204,68,68,0.3); }
+  }
+
+  .flash-damage { animation: flash-damage 0.4s ease; }
+
+  @keyframes flash-heal {
+    0%,100% { background: var(--panel); }
+    50% { background: rgba(68,204,102,0.2); }
+  }
+
+  .flash-heal { animation: flash-heal 0.4s ease; }
+
+  /* Mobile */
+  @media (max-width: 580px) {
+    .battle-arena { grid-template-columns: 1fr; }
+    .vs-divider { grid-column: 1; }
+    .moves-grid { grid-template-columns: 1fr; }
+    .char-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.95);
+    border: 1px solid rgba(201,168,76,0.3);
+    padding: 0.6rem 0.9rem;
+    font-size: 0.75rem;
+    color: var(--text);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 100;
+    line-height: 1.6;
+  }
+  .char-card:hover .tooltip { opacity: 1; }
+
+  .tag-new {
+    position: absolute;
+    top: 8px; right: 8px;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.4rem;
+    background: var(--accent);
+    color: white;
+    letter-spacing: 0.1em;
+    font-family: 'Crimson Pro', serif;
+  }
+
+  #turn-indicator {
+    text-align: center;
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    margin-bottom: 1rem;
+  }
+
+  #waiting-indicator {
+    text-align: center;
+    color: var(--text-dim);
+    font-style: italic;
+    padding: 1rem;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">⚖️ Versione Bilanciata</div>
+  <a href="index.html" class="back-btn">← Torna al menu</a>
+</header>
+
+<div id="app">
+
+  <!-- SCREEN: New/Load -->
+  <div id="screen-start" class="screen active">
+    <br>
+    <h2 class="section-title">⚔️ Arena dei Destini</h2>
+    <p class="section-sub">Versione bilanciata v2.0 — HP e danni ricalibrati per combattimenti equi</p>
+    <div class="btn-row">
+      <button class="btn" onclick="newGame()">Nuova Partita</button>
+      <button class="btn btn-danger" onclick="loadGame()">Carica Salvataggio</button>
+    </div>
+  </div>
+
+  <!-- SCREEN: Character Select -->
+  <div id="screen-charselect" class="screen">
+    <h2 class="section-title">Scegli il tuo personaggio</h2>
+    <p class="section-sub">Il personaggio scelto non potrà essere sfidato come avversario</p>
+    <div class="char-grid" id="char-grid"></div>
+    <div class="btn-row">
+      <button class="btn" id="btn-confirm-char" onclick="confirmCharacter()" disabled>Conferma</button>
+    </div>
+  </div>
+
+  <!-- SCREEN: World Map -->
+  <div id="screen-world" class="screen">
+    <div class="world-panel">
+      <div class="world-header">
+        <div>
+          <div style="font-family:'Cinzel Decorative',serif; font-size:0.8rem; color:var(--gold-light); letter-spacing:0.08em;">MAPPA DEL MONDO</div>
+          <div id="world-player-label" style="font-size:0.75rem; color:var(--text-dim); margin-top:0.2rem;"></div>
+        </div>
+        <div class="player-info">
+          <div>Vittorie: <strong id="victory-count">0</strong> / 6</div>
+          <div class="progress-bar-wrap" style="width:120px">
+            <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="enemy-grid" id="enemy-grid"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-danger" onclick="resetGame()" style="font-size:0.7rem; padding:0.5rem 1.2rem;">Reset Partita</button>
+    </div>
+  </div>
+
+  <!-- SCREEN: Battle -->
+  <div id="screen-battle" class="screen">
+    <div class="battle-arena">
+      <div class="combatant player" id="player-panel">
+        <div class="combatant-name" id="player-name">—</div>
+        <div class="hp-bar-wrap"><div class="hp-bar" id="player-hp-bar" style="width:100%"></div></div>
+        <div class="hp-text">HP: <span id="player-hp-text">—</span> / <span id="player-hp-max">—</span></div>
+        <div class="status-badges" id="player-badges"></div>
+      </div>
+
+      <div class="combatant enemy" id="enemy-panel">
+        <div class="combatant-name" id="enemy-name">—</div>
+        <div class="hp-bar-wrap"><div class="hp-bar" id="enemy-hp-bar" style="width:100%"></div></div>
+        <div class="hp-text">HP: <span id="enemy-hp-text">—</span> / <span id="enemy-hp-max">—</span></div>
+        <div class="status-badges" id="enemy-badges"></div>
+      </div>
+    </div>
+
+    <div id="turn-indicator">IL TUO TURNO</div>
+
+    <div class="battle-log" id="battle-log"></div>
+
+    <div id="waiting-indicator">Il nemico sta decidendo...</div>
+
+    <div class="moves-grid" id="moves-grid"></div>
+
+    <div class="btn-row" id="post-battle-btns" style="display:none">
+      <button class="btn" onclick="returnToWorld()">Torna alla mappa</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =====================================================
+// GAME DATA
+// =====================================================
+
+const IS_BALANCED = true;
+
+const CHARACTERS = {
+  1: {
+    id:1, name:'Jonathan', icon:'⚔️',
+    hpMax: IS_BALANCED ? 400 : 300,
+    moves: ['Fendente Preciso','Lama Rinforzata','Colpo di Ritorno','Affondo Maestro'],
+    desc: 'Guerriero d\'élite, bilancia attacco e difesa con maestria.',
+  },
+  2: {
+    id:2, name:'Rey', icon:'🌿',
+    hpMax: IS_BALANCED ? 400 : 250,
+    moves: ['Spina Avvincente','Respiro del Bosco','Corteccia Vivente','Ira Verdeggiante'],
+    desc: 'Druida del bosco antico. Può intrappolare i nemici e curarsi.',
+  },
+  3: {
+    id:3, name:'Kira', icon:'🌀',
+    hpMax: IS_BALANCED ? 500 : 650,
+    moves: ['Colpo Primordiale','Sigillo degli Elementi','Manto Elementale','Equilibrio Cosmico'],
+    desc: 'Maga degli elementi. Applica status randomici e annulla buff.',
+  },
+  4: {
+    id:4, name:'Jessie', icon:'🔮',
+    hpMax: IS_BALANCED ? 400 : 250,
+    moves: ['Lancia Psichica','Muro Mentale','Traslazione Nervosa','Risonanza Cerebrale'],
+    desc: 'Psichica dalle capacità curative. Alta mobilità e drain.',
+  },
+  5: {
+    id:5, name:'Mario', icon:'💪',
+    hpMax: IS_BALANCED ? 450 : 600,
+    moves: ['Colpo Devastante','Frattura d\'Impatto','Rage','Ultima Carica'],
+    desc: 'Bruto inarrestabile. Attacchi potenti ma spesso si danneggia.',
+  },
+  6: {
+    id:6, name:'Lucie', icon:'🔥',
+    hpMax: IS_BALANCED ? 400 : 450,
+    moves: ['Fiamma Abissale','Marchio del Peccato','Patto Infernale','Apocalisse Cremisi'],
+    desc: 'Incantatrice infernale. Marchia i nemici per amplificare i danni.',
+  },
+  7: {
+    id:7, name:'Kuragami', icon:'👁️',
+    hpMax: IS_BALANCED ? 750 : 900,
+    moves: ['Vortice Oscuro','Dissoluzione','Tentacoli Eterei','Estinzione'],
+    desc: 'IL BOSS FINALE. Sfidabile solo dopo aver sconfitto tutti gli altri.',
+    isBoss: true,
+  },
+};
+
+const ENEMIES_ORDER = [1,2,3,4,5,6,7];
+
+// =====================================================
+// GAME STATE
+// =====================================================
+let state = {
+  playerChar: null,
+  defeated: {1:false,2:false,3:false,4:false,5:false,6:false,7:false},
+};
+
+function saveState() {
+  localStorage.setItem('arena-balanced-state', JSON.stringify(state));
+}
+
+function loadState() {
+  const s = localStorage.getItem('arena-balanced-state');
+  if (s) { state = JSON.parse(s); return true; }
+  return false;
+}
+
+function resetGame() {
+  if (!confirm('Sei sicuro di voler resettare la partita?')) return;
+  localStorage.removeItem('arena-balanced-state');
+  state = { playerChar:null, defeated:{1:false,2:false,3:false,4:false,5:false,6:false,7:false} };
+  showScreen('screen-start');
+}
+
+// =====================================================
+// NAVIGATION
+// =====================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function newGame() {
+  state = { playerChar:null, defeated:{1:false,2:false,3:false,4:false,5:false,6:false,7:false} };
+  renderCharSelect();
+  showScreen('screen-charselect');
+}
+
+function loadGame() {
+  if (loadState() && state.playerChar) {
+    renderWorld();
+    showScreen('screen-world');
+  } else {
+    alert('Nessun salvataggio trovato. Avvio nuova partita.');
+    newGame();
+  }
+}
+
+// =====================================================
+// CHARACTER SELECT
+// =====================================================
+let selectedChar = null;
+
+function renderCharSelect() {
+  selectedChar = null;
+  const grid = document.getElementById('char-grid');
+  grid.innerHTML = '';
+  document.getElementById('btn-confirm-char').disabled = true;
+
+  [1,2,3,4,5,6].forEach(id => {
+    const c = CHARACTERS[id];
+    const div = document.createElement('div');
+    div.className = 'char-card';
+    div.onclick = () => selectChar(id);
+    div.innerHTML = `
+      <div class="char-icon">${c.icon}</div>
+      <div class="char-name">${c.name}</div>
+      <div class="char-hp-label">HP: <span class="char-hp-val">${c.hpMax}</span></div>
+      <div class="char-moves">${c.moves.join(' · ')}</div>
+      <div class="tooltip">${c.desc}</div>
+    `;
+    div.id = 'charcard-' + id;
+    grid.appendChild(div);
+  });
+}
+
+function selectChar(id) {
+  selectedChar = id;
+  document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('charcard-' + id).classList.add('selected');
+  document.getElementById('btn-confirm-char').disabled = false;
+}
+
+function confirmCharacter() {
+  if (!selectedChar) return;
+  state.playerChar = selectedChar;
+  saveState();
+  renderWorld();
+  showScreen('screen-world');
+}
+
+// =====================================================
+// WORLD MAP
+// =====================================================
+function renderWorld() {
+  const c = CHARACTERS[state.playerChar];
+  document.getElementById('world-player-label').textContent = `Personaggio: ${c.name} ${c.icon}`;
+
+  const victories = Object.values(state.defeated).filter(Boolean).length;
+  document.getElementById('victory-count').textContent = victories;
+  document.getElementById('progress-bar').style.width = (victories / 7 * 100) + '%';
+
+  const grid = document.getElementById('enemy-grid');
+  grid.innerHTML = '';
+
+  ENEMIES_ORDER.forEach(id => {
+    if (id === state.playerChar) return; // skip own character
+    const e = CHARACTERS[id];
+    const beaten = state.defeated[id];
+    const isKuragami = id === 7;
+    const kuragamiLocked = isKuragami && [1,2,3,4,5,6]
+      .filter(i => i !== state.playerChar)
+      .some(i => !state.defeated[i]);
+
+    const div = document.createElement('div');
+    div.className = 'enemy-card' + (beaten ? ' beaten' : '') + (kuragamiLocked ? ' locked' : '') + (isKuragami ? ' boss' : '');
+
+    let statusHtml = '';
+    if (beaten) statusHtml = `<div class="enemy-status status-beaten">✓ SCONFITTO</div>`;
+    else if (kuragamiLocked) statusHtml = `<div class="enemy-status status-locked">🔒 BLOCCATO</div>`;
+    else statusHtml = `<div class="enemy-status status-available">▶ SFIDA</div>`;
+
+    div.innerHTML = `
+      <div class="enemy-icon">${e.icon}</div>
+      <div class="enemy-name">${e.name}</div>
+      <div style="font-size:0.65rem; color:var(--text-dim); margin-top:0.2rem">HP: ${e.hpMax}</div>
+      ${statusHtml}
+    `;
+
+    if (!beaten && !kuragamiLocked) {
+      div.onclick = () => startBattle(id);
+    }
+
+    grid.appendChild(div);
+  });
+}
+
+function returnToWorld() {
+  renderWorld();
+  showScreen('screen-world');
+}
+
+// =====================================================
+// BATTLE ENGINE
+// =====================================================
+let battle = null;
+
+function rnd(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function startBattle(enemyId) {
+  const pc = CHARACTERS[state.playerChar];
+  const ec = CHARACTERS[enemyId];
+
+  battle = {
+    playerChar: state.playerChar,
+    enemyChar: enemyId,
+    playerHP: pc.hpMax,
+    playerMaxHP: pc.hpMax,
+    enemyHP: ec.hpMax,
+    enemyMaxHP: ec.hpMax,
+    // Buffs/debuffs
+    bufap:0, timerbufap:0,   // player atk buf
+    bufdp:0, timerbufdp:0,   // player def buf
+    bufp:0,  timerbufp:0,    // player evasion
+    debufp:0, timerdebufp:0, // player debuf atk
+    debufdp:0,               // player def debuf
+    bufaj:0, timerbufaj:0,   // enemy atk buf
+    bufdj:0, timerbufdj:0,   // enemy def buf
+    bufj:0,  timerbufj:0,    // enemy evasion
+    debufj:0, timerdej:0,    // enemy debuf
+    debufdj:0, timerdedj:0,  // enemy def debuf
+    active: true,
+    log: [],
+  };
+
+  renderBattle();
+  showScreen('screen-battle');
+}
+
+function log(text, cls='') {
+  const div = document.createElement('div');
+  div.className = 'log-line ' + cls;
+  div.textContent = text;
+  const logEl = document.getElementById('battle-log');
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+  battle.log.push({text,cls});
+}
+
+function logSep() { log('───────────────────────────────', 'separator'); }
+
+function updateHPBars() {
+  const pp = Math.max(0, battle.playerHP / battle.playerMaxHP * 100);
+  const ep = Math.max(0, battle.enemyHP / battle.enemyMaxHP * 100);
+  document.getElementById('player-hp-bar').style.width = pp + '%';
+  document.getElementById('enemy-hp-bar').style.width  = ep + '%';
+  document.getElementById('player-hp-text').textContent = Math.max(0, battle.playerHP);
+  document.getElementById('enemy-hp-text').textContent  = Math.max(0, battle.enemyHP);
+  updateBadges();
+}
+
+function updateBadges() {
+  const pb = document.getElementById('player-badges');
+  const eb = document.getElementById('enemy-badges');
+  pb.innerHTML = '';
+  eb.innerHTML = '';
+
+  if (battle.bufap > 0) addBadge(pb, `ATK+${battle.bufap} (${battle.timerbufap}t)`, 'buf');
+  if (battle.bufdp > 0) addBadge(pb, `DEF+${battle.bufdp} (${battle.timerbufdp}t)`, 'buf');
+  if (battle.bufp  > 0) addBadge(pb, `EVA (${battle.timerbufp}t)`, 'buf');
+  if (battle.debufdp > 0) addBadge(pb, `DEF-${battle.debufdp}`, 'debuf');
+  if (battle.debufp > 0) addBadge(pb, `Debuf (${battle.timerdebufp}t)`, 'debuf');
+
+  if (battle.bufaj  > 0) addBadge(eb, `ATK+${battle.bufaj} (${battle.timerbufaj}t)`, 'buf');
+  if (battle.bufdj  > 0) addBadge(eb, `DEF+${battle.bufdj} (${battle.timerbufdj}t)`, 'buf');
+  if (battle.debufj > 0) addBadge(eb, `Intrappolato (${battle.timerdej}t)`, 'debuf');
+  if (battle.debufdj> 0) addBadge(eb, `Marchiato+${battle.debufdj} (${battle.timerdedj}t)`, 'debuf');
+}
+
+function addBadge(container, text, type) {
+  const span = document.createElement('span');
+  span.className = 'badge badge-' + type;
+  span.textContent = text;
+  container.appendChild(span);
+}
+
+function renderBattle() {
+  const pc = CHARACTERS[battle.playerChar];
+  const ec = CHARACTERS[battle.enemyChar];
+
+  document.getElementById('player-name').textContent = pc.name + ' ' + pc.icon;
+  document.getElementById('enemy-name').textContent  = ec.name + ' ' + ec.icon;
+  document.getElementById('player-hp-max').textContent = battle.playerMaxHP;
+  document.getElementById('enemy-hp-max').textContent  = battle.enemyMaxHP;
+
+  document.getElementById('battle-log').innerHTML = '';
+  document.getElementById('post-battle-btns').style.display = 'none';
+  document.getElementById('waiting-indicator').style.display = 'none';
+
+  updateHPBars();
+  renderMoves();
+
+  log(`⚔ Battaglia iniziata: ${pc.name} VS ${ec.name}`, 'system');
+  log(`Il tuo turno! Scegli una mossa.`, 'system');
+  logSep();
+}
+
+function renderMoves() {
+  const pc = CHARACTERS[battle.playerChar];
+  const grid = document.getElementById('moves-grid');
+  grid.innerHTML = '';
+  const disabled = !battle.active;
+
+  pc.moves.forEach((m, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'move-btn';
+    btn.disabled = disabled;
+    btn.innerHTML = `<span class="move-num">${i+1}</span>${m}`;
+    btn.onclick = () => playerAttack(i + 1);
+    grid.appendChild(btn);
+  });
+}
+
+function disableMoves() {
+  document.querySelectorAll('.move-btn').forEach(b => b.disabled = true);
+  document.getElementById('turn-indicator').textContent = 'TURNO DEL NEMICO...';
+}
+
+function enableMoves() {
+  if (!battle.active) return;
+  document.querySelectorAll('.move-btn').forEach(b => b.disabled = false);
+  document.getElementById('turn-indicator').textContent = 'IL TUO TURNO';
+}
+
+// =====================================================
+// PLAYER ATTACKS (translated from C)
+// =====================================================
+function playerAttack(move) {
+  if (!battle.active) return;
+  disableMoves();
+
+  const pc = CHARACTERS[battle.playerChar];
+  const ec = CHARACTERS[battle.enemyChar];
+  let danni, recupero;
+
+  const bufap = battle.bufap;
+  const bufdj = battle.bufdj;
+  const debufdj = battle.debufdj;
+  const bufdp = battle.bufdp;
+
+  switch(battle.playerChar) {
+    // ===== JONATHAN =====
+    case 1:
+      switch(move) {
+        case 1: // Fendente Preciso
+          danni = rnd(45,59) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Fendente Preciso: ${danni} danni!`, 'player-action');
+          break;
+        case 2: // Lama Rinforzata
+          battle.bufap = 15; battle.timerbufap = 3;
+          log('Aumenti il tuo attacco per 2 turni!', 'player-action');
+          break;
+        case 3: // Colpo di Ritorno
+          danni = rnd(50,69) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          recupero = Math.floor(danni * 40 / 100);
+          battle.playerHP += recupero;
+          log(`Usi Colpo di Ritorno: ${danni} danni!`, 'player-action');
+          log(`Recuperi ${recupero} HP.`, 'heal');
+          break;
+        case 4: // Affondo Maestro
+          danni = rnd(70,94) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Affondo Maestro: ${danni} danni!`, 'player-action');
+          break;
+      }
+      break;
+
+    // ===== REY =====
+    case 2:
+      switch(move) {
+        case 1: // Spina Avvincente
+          if (battle.debufj >= 1) danni = rnd(40,45) + bufap - bufdj;
+          else danni = rnd(30,45) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Spina Avvincente: ${danni} danni!`, 'player-action');
+          battle.debufj = 1; battle.timerdej = 3;
+          log(`${ec.name} è intrappolato per 2 turni!`, 'damage');
+          break;
+        case 2: // Respiro del Bosco
+          recupero = Math.floor(battle.playerHP * 35 / 100);
+          battle.playerHP += recupero;
+          log(`Usi Respiro del Bosco: recuperi ${recupero} HP.`, 'heal');
+          break;
+        case 3: // Corteccia Vivente
+          battle.bufdp = 10; battle.timerbufdp = 3;
+          log('La tua difesa aumenta per 2 turni!', 'player-action');
+          break;
+        case 4: // Ira Verdeggiante
+          if (battle.debufj >= 1) danni = rnd(60,65) + bufap - bufdj;
+          else danni = rnd(50,65) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Ira Verdeggiante: ${danni} danni!`, 'player-action');
+          const contraccolpo = Math.floor(battle.playerHP * 10 / 100);
+          battle.playerHP -= contraccolpo;
+          log(`Subisci il contraccolpo: ${contraccolpo} danni!`, 'damage');
+          break;
+      }
+      break;
+
+    // ===== KIRA =====
+    case 3:
+      switch(move) {
+        case 1: // Colpo Primordiale
+          danni = rnd(40,49) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Colpo Primordiale: ${danni} danni!`, 'player-action');
+          break;
+        case 2: // Sigillo degli Elementi
+          const sigillo = rnd(1,4);
+          battle.debufj = sigillo; battle.timerdej = 3;
+          switch(sigillo) {
+            case 1: log('Applichi Rallentamento a ' + ec.name + ' per 2 turni!', 'damage'); break;
+            case 2: log('Applichi Bruciatura a ' + ec.name + ' per 2 turni!', 'damage'); break;
+            case 3:
+              log('Applichi Riduzione Precisione a ' + ec.name + ' per 2 turni!', 'damage');
+              battle.bufdp = 10; battle.timerbufdp = 3;
+              break;
+            case 4:
+              log('Applichi Riduzione Difesa a ' + ec.name + '!', 'damage');
+              battle.bufap = 10; battle.timerbufap = 3;
+              break;
+          }
+          break;
+        case 3: // Manto Elementale
+          battle.bufdp = 10; battle.timerbufdp = 3;
+          log('La tua difesa aumenta per 2 turni!', 'player-action');
+          break;
+        case 4: // Equilibrio Cosmico
+          if (battle.debufj >= 1) danni = rnd(20,25) + bufap - bufdj;
+          else danni = rnd(15,25) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Equilibrio Cosmico: ${danni} danni!`, 'player-action');
+          battle.timerbufdp = 0; battle.timerdej = 0; battle.timerbufaj = 0;
+          battle.bufdp = 0; battle.debufj = 0; battle.bufaj = 0;
+          log('Annulli tutti i buff e debuff in campo!', 'system');
+          break;
+      }
+      break;
+
+    // ===== JESSIE =====
+    case 4:
+      switch(move) {
+        case 1: // Lancia Psichica
+          danni = rnd(50,69) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Lancia Psichica: ${danni} danni!`, 'player-action');
+          break;
+        case 2: // Muro Mentale
+          battle.bufdp = 20; battle.timerbufdp = 2;
+          log('Usi Muro Mentale: difesa aumentata!', 'player-action');
+          break;
+        case 3: // Traslazione Nervosa
+          battle.bufp = 1; battle.timerbufp = 4;
+          log('La tua evasione aumenta per 3 turni!', 'player-action');
+          break;
+        case 4: // Risonanza Cerebrale
+          danni = rnd(35,49) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          battle.playerHP += danni;
+          log(`Usi Risonanza Cerebrale: ${danni} danni!`, 'player-action');
+          log(`Ti sei curata di ${danni} HP.`, 'heal');
+          break;
+      }
+      break;
+
+    // ===== MARIO =====
+    case 5:
+      switch(move) {
+        case 1: // Colpo Devastante
+          danni = rnd(55,69) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Colpo Devastante: ${danni} danni!`, 'player-action');
+          break;
+        case 2: // Frattura d'Impatto
+          danni = rnd(50,59) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Frattura d'Impatto: ${danni} danni!`, 'player-action');
+          battle.debufdj = 5;
+          log('Difesa del nemico diminuita per 1 turno!', 'damage');
+          break;
+        case 3: // Rage
+          battle.bufap = 10; battle.timerbufap = 3;
+          log('Il tuo attacco aumenta per 2 turni!', 'player-action');
+          break;
+        case 4: // Ultima Carica
+          danni = rnd(90,119) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Ultima Carica: ${danni} danni!`, 'player-action');
+          const cc = Math.floor(battle.playerHP * 30 / 100);
+          battle.playerHP -= cc;
+          log(`Subisci il contraccolpo: ${cc} danni!`, 'damage');
+          break;
+      }
+      break;
+
+    // ===== LUCIE =====
+    case 6:
+      switch(move) {
+        case 1: // Fiamma Abissale
+          danni = rnd(50,54) + bufap - bufdj + battle.debufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Fiamma Abissale: ${danni} danni!`, 'player-action');
+          break;
+        case 2: // Marchio del Peccato
+          battle.debufdj = 10; battle.timerdedj = 4;
+          log(`Marchi ${ec.name}: subirà più danni per 3 turni!`, 'damage');
+          break;
+        case 3: // Patto Infernale
+          danni = rnd(40,44) + bufap - bufdj + battle.debufdj;
+          battle.enemyHP -= danni;
+          recupero = Math.floor(danni * 20 / 100);
+          battle.playerHP += recupero;
+          log(`Usi Patto Infernale: ${danni} danni!`, 'player-action');
+          log(`Recuperi ${recupero} HP.`, 'heal');
+          break;
+        case 4: // Apocalisse Cremisi
+          if (battle.debufdj > 0) danni = rnd(70,74) + bufap - bufdj + battle.debufdj;
+          else danni = rnd(60,64) + bufap - bufdj;
+          battle.enemyHP -= danni;
+          log(`Usi Apocalisse Cremisi: ${danni} danni!`, 'player-action');
+          break;
+      }
+      break;
+
+    // ===== QUESTION MARK (hidden char) =====
+    default:
+      switch(move) {
+        case 1:
+          danni = 9999;
+          battle.enemyHP -= danni;
+          log(`Riscrittura dell'essere: ${danni} danni!!`, 'player-action');
+          break;
+        case 2:
+          battle.enemyHP = battle.enemyMaxHP;
+          log('Carezza: non voglio che tu muoia... adesso ;)', 'heal');
+          break;
+        case 3:
+          battle.playerHP = battle.playerMaxHP;
+          log('Ripristino assoluto: sono di nuovo a piena vita!', 'heal');
+          break;
+        case 4:
+          log('Attendo...\n...', 'system');
+          danni = 90;
+          battle.enemyHP -= danni;
+          log(`Attendo facendo ${danni} danni. Sono così potente che anche non fare nulla fa danni.`, 'player-action');
+          break;
+      }
+      break;
+  }
+
+  updateHPBars();
+
+  // Check player win
+  if (battle.enemyHP <= 0) {
+    setTimeout(() => endBattle(true), 400);
+    return;
+  }
+
+  // Tick player's own timer
+  tickPlayerTimers();
+
+  // Enemy turn after delay
+  setTimeout(enemyAttack, 900);
+}
+
+// =====================================================
+// ENEMY ATTACKS (AI)
+// =====================================================
+function enemyAttack() {
+  if (!battle.active) return;
+  document.getElementById('waiting-indicator').style.display = 'none';
+
+  const ec = CHARACTERS[battle.enemyChar];
+  const move = rnd(1, 4);
+  const bufaj = battle.bufaj;
+  const bufdp = battle.bufdp;
+
+  let danni, recupero;
+
+  switch(battle.enemyChar) {
+    // ===== JONATHAN (enemy) =====
+    case 1:
+      switch(move) {
+        case 1: // Fendente Preciso
+          danni = rnd(45,59) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Jonathan usa Fendente Preciso: ${danni} danni!`, 'enemy-action');
+          break;
+        case 2: // Lama Rinforzata
+          battle.bufaj = 15; battle.timerbufaj = 3;
+          log('Jonathan aumenta il proprio attacco!', 'enemy-action');
+          break;
+        case 3: // Colpo di Ritorno
+          danni = rnd(50,69) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          recupero = Math.floor(danni * 40 / 100);
+          battle.enemyHP += recupero;
+          log(`Jonathan usa Colpo di Ritorno: ${danni} danni!`, 'enemy-action');
+          log(`Jonathan recupera ${recupero} HP.`, 'heal');
+          break;
+        case 4: // Affondo Maestro
+          danni = rnd(70,94) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Jonathan usa Affondo Maestro: ${danni} danni!`, 'enemy-action');
+          break;
+      }
+      break;
+
+    // ===== REY (enemy) =====
+    case 2:
+      switch(move) {
+        case 1:
+          danni = rnd(25,35) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Rey usa Spina Avvincente: ${danni} danni!`, 'enemy-action');
+          battle.debufp = 1; battle.timerdebufp = 3;
+          log('Sei intrappolato per 2 turni (danno ridotto).', 'damage');
+          break;
+        case 2:
+          recupero = Math.floor(battle.enemyHP * 25 / 100);
+          battle.enemyHP += recupero;
+          log(`Rey si cura di ${recupero} HP.`, 'heal');
+          break;
+        case 3:
+          battle.bufdj = 10; battle.timerbufdj = 3;
+          log('Rey aumenta la sua difesa!', 'enemy-action');
+          break;
+        case 4:
+          danni = rnd(40,50) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Rey usa Ira Verdeggiante: ${danni} danni!`, 'enemy-action');
+          const cc = Math.floor(battle.enemyHP * 10 / 100);
+          battle.enemyHP -= cc;
+          log(`Rey subisce il contraccolpo: ${cc} danni.`, 'damage');
+          break;
+      }
+      break;
+
+    // ===== KIRA (enemy) — BALANCED =====
+    case 3:
+      switch(move) {
+        case 1:
+          danni = rnd(40,49) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Kira usa Colpo Primordiale: ${danni} danni!`, 'enemy-action');
+          break;
+        case 2:
+          const eff = rnd(1,4);
+          battle.debufp = eff; battle.timerdebufp = 3;
+          log(`Kira usa Sigillo degli Elementi (effetto ${eff})!`, 'enemy-action');
+          break;
+        case 3:
+          battle.bufdj = 10; battle.timerbufdj = 3;
+          log('Kira aumenta la sua difesa!', 'enemy-action');
+          break;
+        case 4:
+          danni = rnd(15,25) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Kira usa Equilibrio Cosmico: ${danni} danni!`, 'enemy-action');
+          battle.timerbufdp = 0; battle.timerdej = 0; battle.timerbufap = 0;
+          battle.bufdp = 0; battle.debufj = 0; battle.bufap = 0;
+          log('Kira annulla tutti i buff in campo!', 'system');
+          break;
+      }
+      break;
+
+    // ===== JESSIE (enemy) =====
+    case 4:
+      switch(move) {
+        case 1:
+          danni = rnd(50,69) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Jessie usa Lancia Psichica: ${danni} danni!`, 'enemy-action');
+          break;
+        case 2:
+          battle.bufdj = 20; battle.timerbufdj = 2;
+          log('Jessie usa Muro Mentale: difesa aumentata!', 'enemy-action');
+          break;
+        case 3:
+          battle.bufj = 1; battle.timerbufj = 4;
+          log("Jessie aumenta la propria evasione!", 'enemy-action');
+          break;
+        case 4:
+          danni = rnd(35,49) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          battle.enemyHP += danni;
+          log(`Jessie usa Risonanza Cerebrale: ${danni} danni!`, 'enemy-action');
+          log(`Jessie si cura di ${danni} HP.`, 'heal');
+          break;
+      }
+      break;
+
+    // ===== MARIO (enemy) =====
+    case 5:
+      switch(move) {
+        case 1:
+          danni = rnd(55,69) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Mario usa Colpo Devastante: ${danni} danni!`, 'enemy-action');
+          break;
+        case 2:
+          danni = rnd(50,59) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Mario usa Frattura d'Impatto: ${danni} danni!`, 'enemy-action');
+          log('La tua difesa diminuisce per 1 turno!', 'damage');
+          battle.debufdp = 5;
+          break;
+        case 3:
+          battle.bufaj = 10; battle.timerbufaj = 3;
+          log("Mario entra in Rage: attacco aumentato!", 'enemy-action');
+          break;
+        case 4:
+          danni = rnd(90,119) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Mario usa Ultima Carica: ${danni} danni!`, 'enemy-action');
+          const ccm = Math.floor(battle.enemyHP * 30 / 100);
+          battle.enemyHP -= ccm;
+          log(`Mario subisce il contraccolpo: ${ccm} danni.`, 'damage');
+          break;
+      }
+      break;
+
+    // ===== LUCIE (enemy) =====
+    case 6:
+      switch(move) {
+        case 1:
+          danni = rnd(50,54) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Lucie usa Fiamma Abissale: ${danni} danni!`, 'enemy-action');
+          break;
+        case 2:
+          battle.debufp = 10; battle.timerdebufp = 4;
+          log('Lucie ti ha marchiato! Subirai più danni per 3 turni.', 'damage');
+          break;
+        case 3:
+          danni = rnd(40,44) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          recupero = Math.floor(danni * 20 / 100);
+          battle.enemyHP += recupero;
+          log(`Lucie usa Patto Infernale: ${danni} danni!`, 'enemy-action');
+          log(`Lucie recupera ${recupero} HP.`, 'heal');
+          break;
+        case 4:
+          danni = rnd(60,64) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Lucie usa Apocalisse Cremisi: ${danni} danni!`, 'enemy-action');
+          break;
+      }
+      break;
+
+    // ===== KURAGAMI =====
+    case 7:
+      const kurMove = rnd(1,4);
+      switch(kurMove) {
+        case 1: // Vortice Oscuro
+          danni = rnd(55,79) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          log(`Kuragami usa Vortice Oscuro: ${danni} danni!`, 'enemy-action');
+          // Frasi di Kuragami
+          const frasi = ['La luce si ritira...','Le tenebre ti avvolgono...','Immagini di morte e distruzione pervadono la tua mente...','Senti che è tutto inutile...','La potenza di Kuragami è troppa per la tua mente...'];
+          log(frasi[rnd(0,4)], 'system');
+          break;
+        case 2: // Dissoluzione
+          battle.bufaj = 20; battle.timerbufaj = 4;
+          log('Kuragami si dissolve e si potenzia!', 'enemy-action');
+          break;
+        case 3: // Tentacoli Eterei
+          danni = rnd(35,54) + bufaj - bufdp;
+          battle.playerHP -= danni;
+          battle.enemyHP += Math.floor(danni * 30 / 100);
+          log(`Kuragami usa Tentacoli Eterei: ${danni} danni!`, 'enemy-action');
+          log(`Kuragami assorbe energia.`, 'heal');
+          break;
+        case 4: // Estinzione
+          if (rnd(1,3) !== 1) {
+            danni = rnd(100,149) + bufaj - bufdp;
+            battle.playerHP -= danni;
+            log(`Kuragami usa ESTINZIONE: ${danni} danni!!!`, 'enemy-action');
+          } else {
+            log('Kuragami ha tentato Estinzione ma fallisce!', 'system');
+          }
+          break;
+      }
+      break;
+  }
+
+  // Bruciatura enemy (se debufj == 2 = bruciatura da Kira)
+  if (battle.debufj === 2) {
+    battle.enemyHP -= 5;
+    log(`${CHARACTERS[battle.enemyChar].name} prende danni da bruciatura: 5!`, 'damage');
+  }
+
+  updateHPBars();
+
+  // Check enemy dead
+  if (battle.enemyHP <= 0) {
+    setTimeout(() => endBattle(true), 400);
+    return;
+  }
+
+  // Check player dead
+  if (battle.playerHP <= 0) {
+    setTimeout(() => endBattle(false), 400);
+    return;
+  }
+
+  tickEnemyTimers();
+  logSep();
+  enableMoves();
+}
+
+// =====================================================
+// TIMER TICKS
+// =====================================================
+function tickPlayerTimers() {
+  if (battle.timerbufap > 0) { battle.timerbufap--; if (!battle.timerbufap) battle.bufap = 0; }
+  if (battle.timerbufdp > 0) { battle.timerbufdp--; if (!battle.timerbufdp) battle.bufdp = 0; }
+  if (battle.timerbufp  > 0) { battle.timerbufp--;  if (!battle.timerbufp)  battle.bufp = 0; }
+  if (battle.timerdebufp> 0) { battle.timerdebufp--;if (!battle.timerdebufp)battle.debufp=0; }
+}
+
+function tickEnemyTimers() {
+  if (battle.timerdej   > 0) { battle.timerdej--;    if (!battle.timerdej)   battle.debufj = 0; }
+  if (battle.timerdedj  > 0) { battle.timerdedj--;   if (!battle.timerdedj)  battle.debufdj = 0; }
+  if (battle.timerbufaj > 0) { battle.timerbufaj--;  if (!battle.timerbufaj) battle.bufaj = 0; }
+  if (battle.timerbufdj > 0) { battle.timerbufdj--;  if (!battle.timerbufdj) battle.bufdj = 0; }
+  if (battle.timerbufj  > 0) { battle.timerbufj--;   if (!battle.timerbufj)  battle.bufj = 0; }
+  if (battle.debufdp > 0)    { battle.debufdp = 0; }
+}
+
+// =====================================================
+// END BATTLE
+// =====================================================
+function endBattle(playerWon) {
+  battle.active = false;
+  document.querySelectorAll('.move-btn').forEach(b => b.disabled = true);
+  document.getElementById('turn-indicator').textContent = '';
+
+  const ec = CHARACTERS[battle.enemyChar];
+  logSep();
+
+  if (playerWon) {
+    log(`🏆 Hai sconfitto ${ec.name}! Victoria!`, 'victory');
+    state.defeated[battle.enemyChar] = true;
+    saveState();
+    if (battle.enemyChar === 7) {
+      log('⚡ HAI SCONFITTO KURAGAMI! Grazie per aver giocato! ⚡', 'victory');
+    }
+  } else {
+    log(`💀 Sei stato sconfitto da ${ec.name}...`, 'defeat');
+  }
+
+  document.getElementById('post-battle-btns').style.display = 'flex';
+  updateHPBars();
+}
+</script>
+</body>
+</html>
