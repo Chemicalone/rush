@@ -700,39 +700,6 @@ const CHARACTERS = {
 const ENEMIES_ORDER = [1,2,3,4,5,6,7];
 
 // =====================================================
-// AUDIO SYSTEM
-// =====================================================
-const BATTLE_MUSIC = {
-  1: 'Jonathan.mp3',
-  2: 'rey.mp3',
-  3: 'kira.mp3',
-  4: 'Jessie.mp3',
-  5: 'mario.mp3',
-  6: 'lucie.mp3',
-  7: 'kuragami.mp3',
-};
-
-let battleAudio = null;
-
-function playBattleMusic(enemyId) {
-  stopBattleMusic();
-  const src = BATTLE_MUSIC[enemyId];
-  if (!src) return;
-  battleAudio = new Audio(src);
-  battleAudio.loop = true;
-  battleAudio.volume = 0.6;
-  battleAudio.play().catch(() => {});
-}
-
-function stopBattleMusic() {
-  if (battleAudio) {
-    battleAudio.pause();
-    battleAudio.currentTime = 0;
-    battleAudio = null;
-  }
-}
-
-// =====================================================
 // GAME STATE
 // =====================================================
 let state = {
@@ -912,7 +879,6 @@ function startBattle(enemyId) {
 
   renderBattle();
   showScreen('screen-battle');
-  playBattleMusic(enemyId);
 }
 
 function log(text, cls='') {
@@ -1523,7 +1489,6 @@ function tickEnemyTimers() {
 // =====================================================
 function endBattle(playerWon) {
   battle.active = false;
-  stopBattleMusic();
   document.querySelectorAll('.move-btn').forEach(b => b.disabled = true);
   document.getElementById('turn-indicator').textContent = '';
 
@@ -1622,9 +1587,9 @@ function activateQuestionMark() {
   qmarkUnlocked = true;
   showQMarkToast('👁️ ???\nUn\'entità sconosciuta ha risposto alla tua chiamata...\nQuestion Mark sbloccato!');
 
-  // If we're on char select, add the card directly without resetting selection
+  // If we're on char select, refresh it
   if (document.getElementById('screen-charselect').classList.contains('active')) {
-    addQuestionMarkCard();
+    renderCharSelect();
   }
 }
 
