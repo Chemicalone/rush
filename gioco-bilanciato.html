@@ -1543,7 +1543,7 @@ function endBattle(playerWon) {
   logSep();
 
   if (playerWon) {
-    log(`🏆 Hai sconfitto ${ec.name}! Victoria!`, 'victory');
+    log(`🏆 Hai sconfitto ${ec.name}! Vittoria!`, 'victory');
     state.defeated[battle.enemyChar] = true;
     saveState();
     if (battle.enemyChar === 7) {
