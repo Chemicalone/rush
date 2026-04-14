@@ -1572,6 +1572,7 @@ let swipeIdx = 0;
 let tapCount = 0;
 let tapTimer = null;
 let touchStartX = 0, touchStartY = 0;
+let konamiJustFired = false;
 
 document.addEventListener('touchstart', (e) => {
   touchStartX = e.changedTouches[0].clientX;
@@ -1584,17 +1585,16 @@ document.addEventListener('touchend', (e) => {
   const absDx = Math.abs(dx), absDy = Math.abs(dy);
 
   if (absDx < 10 && absDy < 10) {
-    // It's a tap — ignore if on an interactive element (button, card, etc.)
-    const target = e.target.closest('button, .char-card, .enemy-card, .move-btn, a, [onclick]');
-    if (target) return;
-
+    // It's a tap
     if (swipeIdx === SWIPE_SEQ.length) {
       tapCount++;
       clearTimeout(tapTimer);
       tapTimer = setTimeout(() => { tapCount = 0; }, 800);
       if (tapCount >= 2) {
         tapCount = 0; swipeIdx = 0;
+        konamiJustFired = true;
         activateQuestionMark();
+        setTimeout(() => { konamiJustFired = false; }, 500);
       }
     } else {
       swipeIdx = 0; tapCount = 0;
@@ -1613,6 +1613,14 @@ document.addEventListener('touchend', (e) => {
     swipeIdx = dir === SWIPE_SEQ[0] ? 1 : 0;
   }
 }, { passive: true });
+
+// Blocca i click del browser che vengono generati dopo i 2 tap del konami
+document.addEventListener('click', (e) => {
+  if (konamiJustFired) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+}, true);
 
 // ---- Unlock logic (session only, no persistence) ----
 let qmarkUnlocked = false;
@@ -1638,9 +1646,14 @@ function isQMarkUnlocked() {
 // Override renderCharSelect to include ? if unlocked
 const _origRenderCharSelect = renderCharSelect;
 renderCharSelect = function() {
+  const prevSelected = selectedChar; // salva la selezione corrente
   _origRenderCharSelect();
   if (isQMarkUnlocked()) {
     addQuestionMarkCard();
+  }
+  // ripristina la selezione se era attiva
+  if (prevSelected !== null && document.getElementById('charcard-' + prevSelected)) {
+    selectChar(prevSelected);
   }
 };
 
