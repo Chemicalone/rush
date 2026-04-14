@@ -579,12 +579,14 @@
 
   <!-- SCREEN: Character Select -->
   <div id="screen-charselect" class="screen">
-    <h2 class="section-title">Scegli il tuo personaggio</h2>
-    <p class="section-sub">Il personaggio scelto non potrà essere sfidato come avversario</p>
-    <div class="char-grid" id="char-grid"></div>
-    <div class="btn-row">
-      <button class="btn" id="btn-confirm-char" onclick="confirmCharacter()" disabled>Conferma</button>
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:0.4rem;">
+      <div>
+        <h2 class="section-title" style="text-align:left; margin-bottom:0.2rem;">Scegli il tuo personaggio</h2>
+        <p class="section-sub" style="text-align:left; margin-bottom:0;">Il personaggio scelto non potrà essere sfidato come avversario</p>
+      </div>
+      <button class="btn" id="btn-confirm-char" onclick="confirmCharacter()" disabled style="flex-shrink:0; margin-top:0.3rem;">Conferma</button>
     </div>
+    <div class="char-grid" id="char-grid" style="margin-top:1.5rem;"></div>
   </div>
 
   <!-- SCREEN: World Map -->
