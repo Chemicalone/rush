@@ -704,6 +704,17 @@ const ENEMIES_ORDER = [1,2,3,4,5,6,7];
 // =====================================================
 // AUDIO SYSTEM
 // =====================================================
+
+const MUSIC_CREDITS = {
+  kuragami: "Don't Leave, Please — MONGOPSY",
+  lucie: "Creator — Lena Raine",
+  kira: "Credit Song for My Death (Boss Fight) - I Won't Let You Go — Stuffed",
+  jonathan: "Black Knife — Toby Fox",
+  mario: "Hammer of Justice - ULTIMATE ORCHESTRA Version — Logan Feece Music",
+  rey: "TOKYOVANIA (Arrangement) — Charty",
+  jessie: "Boss battle against that random npc you had no idea was going to be a boss — Snazzy Spider"
+};
+
 const BATTLE_MUSIC = {
   1: 'Jonathan.mp3',
   2: 'rey.mp3',
@@ -1287,6 +1298,7 @@ function enemyAttack() {
           battle.playerHP -= danni;
           recupero = Math.floor(danni * 40 / 100);
           battle.enemyHP += recupero;
+      battle.enemyHP = Math.min(battle.enemyHP, CHARACTERS[battle.enemyChar].hpMax);
           log(`Jonathan usa Colpo di Ritorno: ${danni} danni!`, 'enemy-action');
           log(`Jonathan recupera ${recupero} HP.`, 'heal');
           break;
@@ -1311,6 +1323,7 @@ function enemyAttack() {
         case 2:
           recupero = Math.floor(battle.enemyHP * 25 / 100);
           battle.enemyHP += recupero;
+      battle.enemyHP = Math.min(battle.enemyHP, CHARACTERS[battle.enemyChar].hpMax);
           log(`Rey si cura di ${recupero} HP.`, 'heal');
           break;
         case 3:
@@ -1429,6 +1442,7 @@ function enemyAttack() {
           battle.playerHP -= danni;
           recupero = Math.floor(danni * 20 / 100);
           battle.enemyHP += recupero;
+      battle.enemyHP = Math.min(battle.enemyHP, CHARACTERS[battle.enemyChar].hpMax);
           log(`Lucie usa Patto Infernale: ${danni} danni!`, 'enemy-action');
           log(`Lucie recupera ${recupero} HP.`, 'heal');
           break;
@@ -1464,6 +1478,7 @@ function enemyAttack() {
           log(`Kuragami assorbe energia.`, 'heal');
           break;
         case 4: // Estinzione
+      if (battle.enemyHP > CHARACTERS[battle.enemyChar].hpMax * 0.4) { break; }
           if (rnd(1,3) !== 1) {
             danni = rnd(100,149) + bufaj - bufdp;
             battle.playerHP -= danni;
@@ -1533,7 +1548,7 @@ function endBattle(playerWon) {
   logSep();
 
   if (playerWon) {
-    log(`🏆 Hai sconfitto ${ec.name}! Victoria!`, 'victory');
+    log(`🏆 Hai sconfitto ${ec.name}! Vittoria!`, 'victory');
     state.defeated[battle.enemyChar] = true;
     saveState();
     if (battle.enemyChar === 7) {
