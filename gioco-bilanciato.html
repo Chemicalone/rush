@@ -1584,7 +1584,10 @@ document.addEventListener('touchend', (e) => {
   const absDx = Math.abs(dx), absDy = Math.abs(dy);
 
   if (absDx < 10 && absDy < 10) {
-    // It's a tap
+    // It's a tap — ignore if on an interactive element (button, card, etc.)
+    const target = e.target.closest('button, .char-card, .enemy-card, .move-btn, a, [onclick]');
+    if (target) return;
+
     if (swipeIdx === SWIPE_SEQ.length) {
       tapCount++;
       clearTimeout(tapTimer);
