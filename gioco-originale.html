@@ -704,17 +704,6 @@ const ENEMIES_ORDER = [1,2,3,4,5,6,7];
 // =====================================================
 // AUDIO SYSTEM
 // =====================================================
-
-const MUSIC_CREDITS = {
-  kuragami: "Don't Leave, Please — MONGOPSY",
-  lucie: "Creator — Lena Raine",
-  kira: "Credit Song for My Death (Boss Fight) - I Won't Let You Go — Stuffed",
-  jonathan: "Black Knife — Toby Fox",
-  mario: "Hammer of Justice - ULTIMATE ORCHESTRA Version — Logan Feece Music",
-  rey: "TOKYOVANIA (Arrangement) — Charty",
-  jessie: "Boss battle against that random npc you had no idea was going to be a boss — Snazzy Spider"
-};
-
 const BATTLE_MUSIC = {
   1: 'Jonathan.mp3',
   2: 'rey.mp3',
@@ -1080,7 +1069,7 @@ function playerAttack(move) {
           log(`${ec.name} è intrappolato per 2 turni!`, 'damage');
           break;
         case 2: // Respiro del Bosco
-          recupero = Math.floor(battle.playerHP * 35 / 100);
+          recupero = rnd(50, 100);
           battle.playerHP += recupero;
           log(`Usi Respiro del Bosco: recuperi ${recupero} HP.`, 'heal');
           break;
@@ -1251,6 +1240,10 @@ function playerAttack(move) {
       break;
   }
 
+  // Cap HP al massimo (la cura non può superare l'HP massimo)
+  battle.playerHP = Math.min(battle.playerHP, battle.playerMaxHP);
+  battle.enemyHP  = Math.min(battle.enemyHP,  battle.enemyMaxHP);
+
   updateHPBars();
 
   // Check player win
@@ -1298,7 +1291,6 @@ function enemyAttack() {
           battle.playerHP -= danni;
           recupero = Math.floor(danni * 40 / 100);
           battle.enemyHP += recupero;
-      battle.enemyHP = Math.min(battle.enemyHP, CHARACTERS[battle.enemyChar].hpMax);
           log(`Jonathan usa Colpo di Ritorno: ${danni} danni!`, 'enemy-action');
           log(`Jonathan recupera ${recupero} HP.`, 'heal');
           break;
@@ -1323,7 +1315,6 @@ function enemyAttack() {
         case 2:
           recupero = Math.floor(battle.enemyHP * 25 / 100);
           battle.enemyHP += recupero;
-      battle.enemyHP = Math.min(battle.enemyHP, CHARACTERS[battle.enemyChar].hpMax);
           log(`Rey si cura di ${recupero} HP.`, 'heal');
           break;
         case 3:
@@ -1442,7 +1433,6 @@ function enemyAttack() {
           battle.playerHP -= danni;
           recupero = Math.floor(danni * 20 / 100);
           battle.enemyHP += recupero;
-      battle.enemyHP = Math.min(battle.enemyHP, CHARACTERS[battle.enemyChar].hpMax);
           log(`Lucie usa Patto Infernale: ${danni} danni!`, 'enemy-action');
           log(`Lucie recupera ${recupero} HP.`, 'heal');
           break;
@@ -1477,9 +1467,10 @@ function enemyAttack() {
           log(`Kuragami usa Tentacoli Eterei: ${danni} danni!`, 'enemy-action');
           log(`Kuragami assorbe energia.`, 'heal');
           break;
-        case 4: // Estinzione
-      if (battle.enemyHP > CHARACTERS[battle.enemyChar].hpMax * 0.4) { break; }
-          if (rnd(1,3) !== 1) {
+        case 4: // Estinzione — usabile solo sotto il 40% HP max
+          if (battle.enemyHP > battle.enemyMaxHP * 0.40) {
+            log('Kuragami tenta Estinzione... ma non è ancora abbastanza disperato. Il turno viene sprecato.', 'system');
+          } else if (rnd(1,3) !== 1) {
             danni = rnd(100,149) + bufaj - bufdp;
             battle.playerHP -= danni;
             log(`Kuragami usa ESTINZIONE: ${danni} danni!!!`, 'enemy-action');
@@ -1496,6 +1487,10 @@ function enemyAttack() {
     battle.enemyHP -= 5;
     log(`${CHARACTERS[battle.enemyChar].name} prende danni da bruciatura: 5!`, 'damage');
   }
+
+  // Cap HP al massimo (la cura non può superare l'HP massimo)
+  battle.playerHP = Math.min(battle.playerHP, battle.playerMaxHP);
+  battle.enemyHP  = Math.min(battle.enemyHP,  battle.enemyMaxHP);
 
   updateHPBars();
 
@@ -1548,7 +1543,7 @@ function endBattle(playerWon) {
   logSep();
 
   if (playerWon) {
-    log(`🏆 Hai sconfitto ${ec.name}! Vittoria!`, 'victory');
+    log(`🏆 Hai sconfitto ${ec.name}! Victoria!`, 'victory');
     state.defeated[battle.enemyChar] = true;
     saveState();
     if (battle.enemyChar === 7) {
@@ -1731,5 +1726,102 @@ function showQMarkToast(msg) {
   }, 4000);
 }
 </script>
+
+<footer style="
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 900px;
+  padding: 2rem 1.5rem;
+  border-top: 1px solid rgba(139,26,26,0.3);
+  margin-top: auto;
+">
+  <div style="
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.7rem;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    text-align: center;
+    margin-bottom: 1.2rem;
+    text-shadow: 0 0 15px rgba(201,168,76,0.3);
+  ">♪ CREDITI MUSICALI</div>
+
+  <div style="
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.6rem;
+  ">
+    <!-- Jonathan -->
+    <div style="background:rgba(12,8,18,0.7); border:1px solid rgba(201,168,76,0.12); padding:0.7rem 1rem; display:flex; gap:0.7rem; align-items:flex-start;">
+      <span style="font-size:1.2rem; flex-shrink:0;">⚔️</span>
+      <div>
+        <div style="font-family:'Cinzel Decorative',serif; font-size:0.62rem; color:var(--gold-light); letter-spacing:0.06em; margin-bottom:0.2rem;">JONATHAN</div>
+        <div style="font-size:0.75rem; color:var(--text); line-height:1.4;">black knife</div>
+        <div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.1rem;">toby fox</div>
+      </div>
+    </div>
+
+    <!-- Rey -->
+    <div style="background:rgba(12,8,18,0.7); border:1px solid rgba(201,168,76,0.12); padding:0.7rem 1rem; display:flex; gap:0.7rem; align-items:flex-start;">
+      <span style="font-size:1.2rem; flex-shrink:0;">🌿</span>
+      <div>
+        <div style="font-family:'Cinzel Decorative',serif; font-size:0.62rem; color:var(--gold-light); letter-spacing:0.06em; margin-bottom:0.2rem;">REY</div>
+        <div style="font-size:0.75rem; color:var(--text); line-height:1.4;">TOKYOVANIA (Arrangement) (+$FLP)</div>
+        <div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.1rem;">charty</div>
+      </div>
+    </div>
+
+    <!-- Kira -->
+    <div style="background:rgba(12,8,18,0.7); border:1px solid rgba(201,168,76,0.12); padding:0.7rem 1rem; display:flex; gap:0.7rem; align-items:flex-start;">
+      <span style="font-size:1.2rem; flex-shrink:0;">🌀</span>
+      <div>
+        <div style="font-family:'Cinzel Decorative',serif; font-size:0.62rem; color:var(--gold-light); letter-spacing:0.06em; margin-bottom:0.2rem;">KIRA</div>
+        <div style="font-size:0.75rem; color:var(--text); line-height:1.4;">Credit song for my death — I won't let you go</div>
+        <div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.1rem;">Stuffed dove</div>
+      </div>
+    </div>
+
+    <!-- Jessie -->
+    <div style="background:rgba(12,8,18,0.7); border:1px solid rgba(201,168,76,0.12); padding:0.7rem 1rem; display:flex; gap:0.7rem; align-items:flex-start;">
+      <span style="font-size:1.2rem; flex-shrink:0;">🔮</span>
+      <div>
+        <div style="font-family:'Cinzel Decorative',serif; font-size:0.62rem; color:var(--gold-light); letter-spacing:0.06em; margin-bottom:0.2rem;">JESSIE</div>
+        <div style="font-size:0.75rem; color:var(--text); line-height:1.4;">boss battle against that random npc you had no idea was going to be a boss</div>
+        <div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.1rem;">Snazzy Spider</div>
+      </div>
+    </div>
+
+    <!-- Mario -->
+    <div style="background:rgba(12,8,18,0.7); border:1px solid rgba(201,168,76,0.12); padding:0.7rem 1rem; display:flex; gap:0.7rem; align-items:flex-start;">
+      <span style="font-size:1.2rem; flex-shrink:0;">💪</span>
+      <div>
+        <div style="font-family:'Cinzel Decorative',serif; font-size:0.62rem; color:var(--gold-light); letter-spacing:0.06em; margin-bottom:0.2rem;">MARIO</div>
+        <div style="font-size:0.75rem; color:var(--text); line-height:1.4;">Hammer of Justice — ULTIMATE ORCHESTRA Version [Deltarune Chapter 3+4 Secret Boss]</div>
+        <div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.1rem;">Logan Feece Music</div>
+      </div>
+    </div>
+
+    <!-- Lucie -->
+    <div style="background:rgba(12,8,18,0.7); border:1px solid rgba(201,168,76,0.12); padding:0.7rem 1rem; display:flex; gap:0.7rem; align-items:flex-start;">
+      <span style="font-size:1.2rem; flex-shrink:0;">🔥</span>
+      <div>
+        <div style="font-family:'Cinzel Decorative',serif; font-size:0.62rem; color:var(--gold-light); letter-spacing:0.06em; margin-bottom:0.2rem;">LUCIE</div>
+        <div style="font-size:0.75rem; color:var(--text); line-height:1.4;">creator</div>
+        <div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.1rem;">Lena Raine</div>
+      </div>
+    </div>
+
+    <!-- Kuragami — full width -->
+    <div style="background:rgba(20,15,5,0.8); border:1px solid rgba(201,168,76,0.3); padding:0.7rem 1rem; display:flex; gap:0.7rem; align-items:flex-start; grid-column: 1 / -1; box-shadow: 0 0 20px rgba(201,168,76,0.08);">
+      <span style="font-size:1.2rem; flex-shrink:0;">👁️</span>
+      <div>
+        <div style="font-family:'Cinzel Decorative',serif; font-size:0.62rem; color:var(--gold-light); letter-spacing:0.06em; margin-bottom:0.2rem;">KURAGAMI — BOSS FINALE</div>
+        <div style="font-size:0.75rem; color:var(--text); line-height:1.4;">dont'leave, please</div>
+        <div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.1rem;">MONGOPSY</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
 </body>
 </html>
