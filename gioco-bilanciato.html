@@ -1543,13 +1543,13 @@ function endBattle(playerWon) {
   logSep();
 
   if (playerWon) {
-    log(`🏆 Hai sconfitto ${ec.name}! Victoria!`, 'victory');
+    log(`🏆 Hai sconfitto ${ec.name}! Vittoria!`, 'victory');
     state.defeated[battle.enemyChar] = true;
     saveState();
     if (battle.enemyChar === 7) {
       log('⚡ HAI SCONFITTO KURAGAMI! ⚡', 'victory');
       if (!hasDied) {
-          setTimeout(showSystemUnlockPopup, 1500);
+          setTimeout(showSystemButton, 1500);
       } else {
           log('Grazie per aver giocato! (Completa il gioco senza morire per sbloccare il boss segreto)', 'system');
       }
@@ -1847,6 +1847,25 @@ function showSystemUnlockPopup() {
 
   </div>
 </footer>
+
+
+<button id="systemButton" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
+padding:14px 26px;font-size:16px;background:#111;color:#ff4466;border:2px solid #ff4466;cursor:pointer;z-index:999;">
+ACCEDI AL NUCLEO
+</button>
+
+<script>
+function showSystemButton(){
+  const b=document.getElementById('systemButton');
+  if(b){ b.style.display='block'; }
+}
+document.addEventListener("DOMContentLoaded",()=>{
+ const b=document.getElementById('systemButton');
+ if(b){
+   b.onclick=function(){ window.location.href="battaglia_ia.html"; }
+ }
+});
+</script>
 
 </body>
 </html>
