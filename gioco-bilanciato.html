@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arena dei Destini — Bilanciata</title>
+<title>Arena dei Destini — Bilanciato</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
 
@@ -60,9 +60,9 @@
   .header-title {
     font-family: 'Cinzel Decorative', serif;
     font-size: 1rem;
-    color: var(--gold-light);
+    color: var(--accent);
     letter-spacing: 0.1em;
-    text-shadow: 0 0 20px rgba(201,168,76,0.4);
+    text-shadow: 0 0 20px var(--accent-glow);
   }
 
   .back-btn {
@@ -570,7 +570,7 @@
   <div id="screen-start" class="screen active">
     <br>
     <h2 class="section-title">⚔️ Arena dei Destini</h2>
-    <p class="section-sub">Versione bilanciata v2.0 — HP e danni ricalibrati per combattimenti equi</p>
+    <p class="section-sub">Versione bilanciata — sfida i campioni e sconfiggi il boss finale</p>
     <div class="btn-row">
       <button class="btn" onclick="newGame()">Nuova Partita</button>
       <button class="btn btn-danger" onclick="loadGame()">Carica Salvataggio</button>
@@ -755,6 +755,7 @@ function loadState() {
 function resetGame() {
   if (!confirm('Sei sicuro di voler resettare la partita?')) return;
   localStorage.removeItem('arena-balanced-state');
+  resetDeathFlag();
   state = { playerChar:null, defeated:{1:false,2:false,3:false,4:false,5:false,6:false,7:false} };
   showScreen('screen-start');
 }
@@ -769,6 +770,7 @@ function showScreen(id) {
 
 function newGame() {
   state = { playerChar:null, defeated:{1:false,2:false,3:false,4:false,5:false,6:false,7:false} };
+  resetDeathFlag();
   renderCharSelect();
   showScreen('screen-charselect');
 }
@@ -1093,7 +1095,7 @@ function playerAttack(move) {
     case 3:
       switch(move) {
         case 1: // Colpo Primordiale
-          danni = rnd(40,49) + bufap - bufdj;
+          danni = 45 + bufap - bufdj;
           battle.enemyHP -= danni;
           log(`Usi Colpo Primordiale: ${danni} danni!`, 'player-action');
           break;
@@ -1332,11 +1334,11 @@ function enemyAttack() {
       }
       break;
 
-    // ===== KIRA (enemy) — BALANCED =====
+    // ===== KIRA (enemy) =====
     case 3:
       switch(move) {
         case 1:
-          danni = rnd(40,49) + bufaj - bufdp;
+          danni = 45 + bufaj - bufdp;
           battle.playerHP -= danni;
           log(`Kira usa Colpo Primordiale: ${danni} danni!`, 'enemy-action');
           break;
@@ -1531,6 +1533,23 @@ function tickEnemyTimers() {
 }
 
 // =====================================================
+// DEATH TRACKING — persisted so "mai morto" funziona
+// anche attraverso più sessioni di gioco
+// =====================================================
+let hasDied = (localStorage.getItem('arena-balanced-hasDied') === 'true');
+
+function markDied() {
+  hasDied = true;
+  localStorage.setItem('arena-balanced-hasDied', 'true');
+}
+
+// Reset hasDied when a new game starts (called in newGame())
+function resetDeathFlag() {
+  hasDied = false;
+  localStorage.removeItem('arena-balanced-hasDied');
+}
+
+// =====================================================
 // END BATTLE
 // =====================================================
 function endBattle(playerWon) {
@@ -1546,21 +1565,43 @@ function endBattle(playerWon) {
     log(`🏆 Hai sconfitto ${ec.name}! Vittoria!`, 'victory');
     state.defeated[battle.enemyChar] = true;
     saveState();
+
     if (battle.enemyChar === 7) {
       log('⚡ HAI SCONFITTO KURAGAMI! ⚡', 'victory');
+      // Mostra i pulsanti post-battaglia con il pulsante speciale
+      document.getElementById('post-battle-btns').style.display = 'flex';
       if (!hasDied) {
-          setTimeout(showSystemButton, 1500);
+        log('Una presenza anomala si fa sentire oltre il velo...', 'system');
+        setTimeout(() => {
+          showSystemUnlockPopup();
+        }, 1200);
       } else {
-          log('Grazie per aver giocato! (Completa il gioco senza morire per sbloccare il boss segreto)', 'system');
+        log('Senti che c\'è qualcosa oltre... ma non sei abbastanza puro per accedervi.', 'system');
+        addCoreHintButton();
       }
+      updateHPBars();
+      return;
     }
   } else {
     log(`💀 Sei stato sconfitto da ${ec.name}...`, 'defeat');
-    hasDied = true;
+    markDied();
   }
 
   document.getElementById('post-battle-btns').style.display = 'flex';
   updateHPBars();
+}
+
+// Aggiunge il pulsante "Verso il Core" (dimmed, solo hint) ai post-battle-btns
+function addCoreHintButton() {
+  const btns = document.getElementById('post-battle-btns');
+  if (btns.querySelector('.btn-core-hint')) return;
+  const hint = document.createElement('button');
+  hint.className = 'btn btn-core-hint';
+  hint.style.cssText = 'opacity:0.3; cursor:not-allowed; border-color:rgba(255,68,102,0.4); color:rgba(255,68,102,0.5); font-size:0.75rem; padding:0.6rem 1.4rem;';
+  hint.title = 'Completa il gioco senza mai morire per sbloccare questo...';
+  hint.textContent = '▸ Verso il Core ▸';
+  hint.disabled = true;
+  btns.appendChild(hint);
 }
 
 // =====================================================
@@ -1733,19 +1774,54 @@ function showQMarkToast(msg) {
 }
 
 function showSystemUnlockPopup() {
+  // Aggiungi anche il pulsante "Verso il Core" nei post-battle-btns
+  addCoreButton();
+
+  // Mostra il popup overlay
   const overlay = document.createElement('div');
-  overlay.style = "position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#ff4466; font-family:'Cinzel Decorative', serif; text-align:center; padding:20px; border: 4px solid #ff4466;";
+  overlay.id = 'system-overlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#ff4466; font-family:\'Cinzel Decorative\', serif; text-align:center; padding:20px;';
   overlay.innerHTML = `
-    <h1 style="text-shadow: 0 0 20px #ff4466; margin-bottom:20px; font-size:2.5rem;">ANOMALIA DI SISTEMA</h1>
-    <p style="color:#e8dcc8; margin-bottom:30px; font-family:'Crimson Pro', serif; font-size:1.2rem;">
-      Hai superato ogni prova senza mai cadere.<br>Il "System" richiede la tua cancellazione immediata.
-    </p>
-    <button id="goto-system" style="background:transparent; border:2px solid #ff4466; color:#ff4466; padding:15px 40px; cursor:pointer; font-family:'Cinzel Decorative'; font-weight:bold; letter-spacing:2px; transition: 0.3s; font-size:1.1rem; box-shadow: 0 0 15px rgba(255,68,102,0.4);">
-      ACCEDI AL NUCLEO (SYSTEM)
-    </button>
+    <div style="border: 2px solid #ff4466; padding: 40px 30px; max-width: 480px; box-shadow: 0 0 60px rgba(255,68,102,0.3); background: rgba(5,0,10,0.98);">
+      <div style="font-size:0.65rem; letter-spacing:0.3em; color:rgba(255,68,102,0.5); margin-bottom:0.8rem;">// ANOMALIA RILEVATA //</div>
+      <h1 style="text-shadow: 0 0 20px #ff4466; margin-bottom:20px; font-size:clamp(1.2rem,4vw,1.8rem); letter-spacing:0.08em;">SISTEMA IN ALLERTA</h1>
+      <p style="color:#e8dcc8; margin-bottom:10px; font-family:'Crimson Pro', serif; font-size:1.05rem; line-height:1.7;">
+        Hai attraversato ogni prova senza mai cadere.<br>
+        La tua esistenza è diventata un errore nel codice.
+      </p>
+      <p style="color:rgba(255,68,102,0.7); margin-bottom:30px; font-family:'Crimson Pro', serif; font-size:0.9rem; font-style:italic;">
+        Il <strong style="color:#ff4466">SYSTEM</strong> richiede la tua cancellazione immediata.
+      </p>
+      <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+        <button id="goto-system-btn" style="background:transparent; border:2px solid #ff4466; color:#ff4466; padding:12px 28px; cursor:pointer; font-family:'Cinzel Decorative'; letter-spacing:0.1em; transition:0.3s; font-size:0.85rem; box-shadow: 0 0 15px rgba(255,68,102,0.4);">
+          ▸ VERSO IL CORE ▸
+        </button>
+        <button id="close-overlay-btn" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.4); padding:12px 20px; cursor:pointer; font-family:'Cinzel Decorative'; letter-spacing:0.08em; font-size:0.75rem;">
+          IGNORA
+        </button>
+      </div>
+    </div>
   `;
   document.body.appendChild(overlay);
-  document.getElementById('goto-system').onclick = () => { window.location.href = 'battaglia_ia.html'; };
+
+  document.getElementById('goto-system-btn').onclick = () => {
+    window.location.href = 'battaglia_ia.html';
+  };
+  document.getElementById('close-overlay-btn').onclick = () => {
+    overlay.remove();
+  };
+}
+
+// Aggiunge il pulsante "Verso il Core" attivo nei post-battle-btns
+function addCoreButton() {
+  const btns = document.getElementById('post-battle-btns');
+  if (btns.querySelector('.btn-core')) return;
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-core';
+  btn.style.cssText = 'border-color:#ff4466; color:#ff6688; box-shadow:0 0 15px rgba(255,68,102,0.3); animation: boss-pulse 2s ease-in-out infinite;';
+  btn.textContent = '▸ Verso il Core ▸';
+  btn.onclick = () => { window.location.href = 'battaglia_ia.html'; };
+  btns.appendChild(btn);
 }
 
 </script>
@@ -1849,23 +1925,6 @@ function showSystemUnlockPopup() {
 </footer>
 
 
-<button id="systemButton" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
-padding:14px 26px;font-size:16px;background:#111;color:#ff4466;border:2px solid #ff4466;cursor:pointer;z-index:999;">
-ACCEDI AL NUCLEO
-</button>
-
-<script>
-function showSystemButton(){
-  const b=document.getElementById('systemButton');
-  if(b){ b.style.display='block'; }
-}
-document.addEventListener("DOMContentLoaded",()=>{
- const b=document.getElementById('systemButton');
- if(b){
-   b.onclick=function(){ window.location.href="battaglia_ia.html"; }
- }
-});
-</script>
 
 </body>
 </html>
