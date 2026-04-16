@@ -1547,10 +1547,16 @@ function endBattle(playerWon) {
     state.defeated[battle.enemyChar] = true;
     saveState();
     if (battle.enemyChar === 7) {
-      log('⚡ HAI SCONFITTO KURAGAMI! Grazie per aver giocato! ⚡', 'victory');
+      log('⚡ HAI SCONFITTO KURAGAMI! ⚡', 'victory');
+      if (!hasDied) {
+          setTimeout(showSystemUnlockPopup, 1500);
+      } else {
+          log('Grazie per aver giocato! (Completa il gioco senza morire per sbloccare il boss segreto)', 'system');
+      }
     }
   } else {
     log(`💀 Sei stato sconfitto da ${ec.name}...`, 'defeat');
+    hasDied = true;
   }
 
   document.getElementById('post-battle-btns').style.display = 'flex';
@@ -1725,6 +1731,23 @@ function showQMarkToast(msg) {
     toast.style.opacity = '0';
   }, 4000);
 }
+
+function showSystemUnlockPopup() {
+  const overlay = document.createElement('div');
+  overlay.style = "position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#ff4466; font-family:'Cinzel Decorative', serif; text-align:center; padding:20px; border: 4px solid #ff4466;";
+  overlay.innerHTML = `
+    <h1 style="text-shadow: 0 0 20px #ff4466; margin-bottom:20px; font-size:2.5rem;">ANOMALIA DI SISTEMA</h1>
+    <p style="color:#e8dcc8; margin-bottom:30px; font-family:'Crimson Pro', serif; font-size:1.2rem;">
+      Hai superato ogni prova senza mai cadere.<br>Il "System" richiede la tua cancellazione immediata.
+    </p>
+    <button id="goto-system" style="background:transparent; border:2px solid #ff4466; color:#ff4466; padding:15px 40px; cursor:pointer; font-family:'Cinzel Decorative'; font-weight:bold; letter-spacing:2px; transition: 0.3s; font-size:1.1rem; box-shadow: 0 0 15px rgba(255,68,102,0.4);">
+      ACCEDI AL NUCLEO (SYSTEM)
+    </button>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('goto-system').onclick = () => { window.location.href = 'battaglia_ia.html'; };
+}
+
 </script>
 
 <footer style="
