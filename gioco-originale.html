@@ -1202,8 +1202,10 @@ function playerAttack(move) {
         case 3: // Patto Infernale
           danni = rnd(40,44) + bufap - bufdj + battle.debufdj;
           battle.enemyHP -= danni;
-          recupero = rnd(10, 20);
+
+          recupero = rnd(20, 40);   // ✅ ORA È CORRETTO
           battle.playerHP += recupero;
+
           log(`Usi Patto Infernale: ${danni} danni!`, 'player-action');
           log(`Recuperi ${recupero} HP.`, 'heal');
           break;
@@ -1433,8 +1435,10 @@ function enemyAttack() {
         case 3:
           danni = rnd(40,44) + bufaj - bufdp;
           battle.playerHP -= danni;
-          recupero = Math.floor(danni * 20 / 100);
+
+          recupero = rnd(20, 40);
           battle.enemyHP += recupero;
+
           log(`Lucie usa Patto Infernale: ${danni} danni!`, 'enemy-action');
           log(`Lucie recupera ${recupero} HP.`, 'heal');
           break;
