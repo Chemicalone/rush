@@ -1069,7 +1069,7 @@ function playerAttack(move) {
           log(`${ec.name} è intrappolato per 2 turni!`, 'damage');
           break;
         case 2: // Respiro del Bosco
-          recupero = Math.floor(battle.playerHP * 35 / 100);
+          recupero = rnd(50, 100);
           battle.playerHP += recupero;
           log(`Usi Respiro del Bosco: recuperi ${recupero} HP.`, 'heal');
           break;
@@ -1200,7 +1200,7 @@ function playerAttack(move) {
         case 3: // Patto Infernale
           danni = rnd(40,44) + bufap - bufdj + battle.debufdj;
           battle.enemyHP -= danni;
-          recupero = Math.floor(danni * 20 / 100);
+          recupero = rnd(10, 20);
           battle.playerHP += recupero;
           log(`Usi Patto Infernale: ${danni} danni!`, 'player-action');
           log(`Recuperi ${recupero} HP.`, 'heal');
@@ -1543,7 +1543,7 @@ function endBattle(playerWon) {
   logSep();
 
   if (playerWon) {
-    log(`🏆 Hai sconfitto ${ec.name}! Vittoria!`, 'victory');
+    log(`🏆 Hai sconfitto ${ec.name}! Victoria!`, 'victory');
     state.defeated[battle.enemyChar] = true;
     saveState();
     if (battle.enemyChar === 7) {
