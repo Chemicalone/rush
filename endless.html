@@ -1003,6 +1003,19 @@ body::after {
 <audio id="audio-normal" src="play.mp3" loop preload="auto"></audio>
 <audio id="audio-boss"   src="boss.mp3" loop preload="auto"></audio>
 
+<!-- Hint autoplay musica -->
+<div id="autoplay-hint" style="
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  background:rgba(10,6,8,0.88); border:1px solid rgba(201,168,76,0.35);
+  color:rgba(201,168,76,0.75); font-family:'Crimson Pro',serif; font-style:italic;
+  font-size:13px; letter-spacing:0.12em; padding:8px 20px; border-radius:2px;
+  pointer-events:none; z-index:9999;
+  animation: hint-pulse 2s ease-in-out infinite;
+">♪ clicca ovunque per avviare la musica</div>
+<style>
+@keyframes hint-pulse { 0%,100%{opacity:0.55;} 50%{opacity:1;} }
+</style>
+
 <script>
 /* ══════════════════════════════════════════
    DATI
@@ -1676,9 +1689,24 @@ mpInit();
 const _origInizia = iniziaBattaglia;
 window.iniziaBattaglia = function(){
   _origInizia();
-  // sceglie traccia in base all'AI settata
   setTimeout(()=>{ mpPlay(G.ai==="BOSS"?"boss":"normal"); }, 50);
 };
+
+// ── AUTOPLAY al primo click utente ──
+let _autoplayDone = false;
+function _tryAutoplay(){
+  if(_autoplayDone) return;
+  _autoplayDone = true;
+  document.removeEventListener("click", _tryAutoplay);
+  document.removeEventListener("keydown", _tryAutoplay);
+  if(!MP.playing && !MP.current){
+    mpPlay("normal");
+  }
+  const hint = document.getElementById("autoplay-hint");
+  if(hint){ hint.style.transition="opacity 0.8s"; hint.style.opacity="0"; setTimeout(()=>hint.remove(),900); }
+}
+document.addEventListener("click", _tryAutoplay);
+document.addEventListener("keydown", _tryAutoplay);
 </script>
 </body>
 </html>
