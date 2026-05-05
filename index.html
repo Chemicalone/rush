@@ -203,6 +203,33 @@
 
   .card--original .card-tag { color: rgba(204,34,34,0.5); }
 
+  .card--endless {
+    border-color: rgba(80,180,120,0.4);
+    width: 270px;
+  }
+  .card--endless::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #50b478, transparent);
+  }
+  .card--endless:hover {
+    border-color: #50b478;
+    box-shadow: 0 8px 40px rgba(80,180,120,0.3), 0 0 0 1px rgba(80,180,120,0.15);
+  }
+  .card--endless .card-title { color: #90e8b0; }
+  .card--endless .card-tag { color: rgba(80,180,120,0.55); }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .endless-icon {
+    display: inline-block;
+    animation: spin-slow 8s linear infinite;
+  }
+
   .footer-note {
     margin-top: 3rem;
     font-size: 0.75rem;
@@ -236,9 +263,16 @@
       <p class="card-desc">HP ribilanciati, danni calibrati, bug corretti. Un'esperienza più equa per ogni scontro.</p>
       <span class="card-tag">v2.0</span>
     </a>
+
+    <a href="endless.html" class="card card--endless">
+      <span class="card-icon"><span class="endless-icon" style="color:#50b478">♾️</span></span>
+      <div class="card-title">Modalità Endless</div>
+      <p class="card-desc">Ondate infinite, potenziamenti casuali, nessuna via d'uscita. Quanto lontano puoi spingerti?</p>
+      <span class="card-tag">Roguelike</span>
+    </a>
   </div>
 
-  <p class="footer-note">6 eroi · 1 boss finale · battaglie a turni</p>
+  <p class="footer-note">6 eroi · 1 boss finale · battaglie a turni · endless waves</p>
 </div>
 
 <script>
