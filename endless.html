@@ -1140,7 +1140,7 @@ function mostraCarica(){const save=caricaPartita();if(!save)return;G=save;inizia
 function nuovaPartita(){
   cancellaSalvataggio();
   G={
-    prot:{HP:100,Max_hp:100,attacco_base:10,difesa_base:5,
+    prot:{HP:120,Max_hp:120,attacco_base:14,difesa_base:8,
           buf_att:0,time_buf_att:0,deb_att:0,time_deb_att:0,
           buff_def:0,time_buff_def:0,deb_def:0,time_deb_def:0},
     mosse:[],num_battaglia:1,modalita_infinita:false
@@ -1197,10 +1197,10 @@ function pescaMosseNemico(){
 
 function iniziaBattaglia(){
   const n=G.num_battaglia,ai=tipoAI(n);
-  const mH=ai==="BOSS"?1.6:1,mA=ai==="BOSS"?1.2:1,mD=ai==="BOSS"?1.1:1;
+  const mH=ai==="BOSS"?1.3:1,mA=ai==="BOSS"?1.1:1,mD=ai==="BOSS"?1.0:1;
   G.nemico={
-    HP:Math.floor((80+n*10)*mH),Max_hp:Math.floor((80+n*10)*mH),
-    attacco_base:Math.floor((7+n*1.0)*mA),difesa_base:Math.floor((2+n*0.5)*mD),
+    HP:Math.floor((75+n*8)*mH),Max_hp:Math.floor((75+n*8)*mH),
+    attacco_base:Math.floor((6+n*0.8)*mA),difesa_base:Math.floor((2+n*0.4)*mD),
     buf_att:0,time_buf_att:0,deb_att:0,time_deb_att:0,
     buff_def:0,time_buff_def:0,deb_def:0,time_deb_def:0
   };
@@ -1365,14 +1365,14 @@ function eseguiTurnoPlayer(idx){
 
 function aggiornaSfasi(){
   if(!G.stato_boss.scudo&&G.nemico.HP<G.nemico.Max_hp/2){
-    G.stato_boss.scudo=true;G.nemico.buff_def=20;G.nemico.time_buff_def=3;
-    log(`<span class="l-warn">🛡 Scudo delle Fasi — DEF +20 per 3 turni!</span>`);aggUI();
+    G.stato_boss.scudo=true;G.nemico.buff_def=12;G.nemico.time_buff_def=3;
+    log(`<span class="l-warn">🛡 Scudo delle Fasi — DEF +12 per 3 turni!</span>`);aggUI();
   }
 }
 function aggiornaFuria(){
   if(!G.stato_boss.furia&&G.nemico.HP<G.nemico.Max_hp*0.3){
-    G.stato_boss.furia=true;G.nemico.buf_att=25;G.nemico.time_buf_att=999;
-    log(`<span class="l-warn">💢 Furia Terminale — ATT +25 permanente!</span>`);aggUI();
+    G.stato_boss.furia=true;G.nemico.buf_att=15;G.nemico.time_buf_att=999;
+    log(`<span class="l-warn">💢 Furia Terminale — ATT +15 permanente!</span>`);aggUI();
   }
 }
 
@@ -1503,11 +1503,11 @@ function finePartita(vittoria){
   rd.style.display="";btns.innerHTML="";
   if(vittoria){
     log(`<span class="l-win">${G.ai==="BOSS"?"⚔ Il Boss è caduto! ⚔":"✦ Vittoria!"}</span>`);
-    const perc=G.era_boss?50:30,rec=Math.floor(G.prot.Max_hp*perc/100);
+    const perc=G.era_boss?60:40,rec=Math.floor(G.prot.Max_hp*perc/100);
     G.prot.HP=imin(G.prot.Max_hp,G.prot.HP+rec);
     log(`<span class="l-heal">✦ Recuperi ${rec} HP (${G.prot.HP}/${G.prot.Max_hp})</span>`);
-    if(G.era_boss){G.prot.Max_hp+=20;G.prot.HP+=20;G.prot.attacco_base+=3;G.prot.difesa_base+=2;log(`<span class="l-win">★ Bonus Boss: Max HP+20 · ATT+3 · DEF+2</span>`);}
-    else{G.prot.Max_hp+=8;G.prot.HP+=8;G.prot.attacco_base+=1;log(`<span class="l-win">★ Crescita: Max HP+8 · ATT+1</span>`);}
+    if(G.era_boss){G.prot.Max_hp+=25;G.prot.HP+=25;G.prot.attacco_base+=4;G.prot.difesa_base+=3;log(`<span class="l-win">★ Bonus Boss: Max HP+25 · ATT+4 · DEF+3</span>`);}
+    else{G.prot.Max_hp+=10;G.prot.HP+=10;G.prot.attacco_base+=2;G.prot.difesa_base+=1;log(`<span class="l-win">★ Crescita: Max HP+10 · ATT+2 · DEF+1</span>`);}
     aggUI();
     if(G.num_battaglia===20&&!G.modalita_infinita){
       salvaPartita();
