@@ -1043,12 +1043,25 @@ const ABILITA_BOSS={
   0:{nome:"Nessuna",      desc:""},
   1:{nome:"Contrattacco", desc:"Ad ogni danno subito, risponde con un attacco bonus immediato."},
   2:{nome:"Rigenerazione",desc:"Recupera HP fissi ogni fine turno."},
-  3:{nome:"Scudo delle Fasi",desc:"Sotto il 50% HP ottiene DEF +20 per 3 turni."},
-  4:{nome:"Furia Terminale",desc:"Sotto il 30% HP ottiene ATT +25 permanente."},
+  3:{nome:"Scudo delle Fasi",desc:"Sotto il 50% HP ottiene DEF +14 per 3 turni."},
+  4:{nome:"Furia Terminale",desc:"Sotto il 30% HP ottiene ATT +15 permanente."},
   5:{nome:"Barriera Ciclica",desc:"Ogni 3 turni assorbe quasi completamente un colpo (1 danno)."},
   6:{nome:"Veleno Persistente",desc:"Infligge danno da veleno al giocatore ogni turno."},
   7:{nome:"Doppio Colpo",  desc:"Ogni 4 turni attacca due volte di seguito."},
-  8:{nome:"Assorbimento",  desc:"Le cure recuperano HP extra in base al danno subito."},
+  8:{nome:"Adattamento",   desc:"Ogni 3 turni guadagna DEF +4 permanente (max +20)."},
+};
+
+/* ── MOSSE SPECIALI BOSS (una per tipo) ── */
+const POOL_BOSS_SPECIALI={
+  0:{id:100,nome:"Sfondamento",         tipo:"ATTACCO",    valore:44,durata:0},
+  1:{id:101,nome:"Provocazione",        tipo:"DEBUFF_DEF", valore:15,durata:3},
+  2:{id:102,nome:"Colpo Corrosivo",     tipo:"DEBUFF_DEF", valore:10,durata:4},
+  3:{id:103,nome:"Muro Arcano",         tipo:"BUFF_DEF",   valore:20,durata:2},
+  4:{id:104,nome:"Precarica",           tipo:"BUFF_ATT",   valore:22,durata:2},
+  5:{id:105,nome:"Interferenza",        tipo:"DEBUFF_ATT", valore:14,durata:3},
+  6:{id:106,nome:"Tossina Amplificata", tipo:"DEBUFF_DEF", valore:12,durata:4},
+  7:{id:107,nome:"Raffica",             tipo:"ATTACCO",    valore:40,durata:0},
+  8:{id:108,nome:"Pressione",           tipo:"DEBUFF_ATT", valore:14,durata:3},
 };
 
 const MAX_LIV=10, SAVE_KEY="arena_v4";
@@ -1099,7 +1112,7 @@ function tipoLabel(t){return{ATTACCO:"Attacco",RECUPERO:"Recupero",BUFF_ATT:"Buf
 function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
 function imax(a,b){return a>b?a:b;}
 function imin(a,b){return a<b?a:b;}
-function trovaMossa(id){return POOL.find(m=>m.id===id)||null;}
+function trovaMossa(id){if(id>=100)return Object.values(POOL_BOSS_SPECIALI).find(m=>m.id===id)||null;return POOL.find(m=>m.id===id)||null;}
 function valoreScalato(m,lv){return m.valore+lv*imax(1,Math.floor(m.valore/5));}
 function durataScalata(m,lv){if(m.durata===0)return 0;return m.durata+Math.floor(lv/3);}
 function attaccoEff(p){return imax(0,p.attacco_base+(p.buf_att||0)-(p.deb_att||0));}
@@ -1195,6 +1208,16 @@ function pescaMosseNemico(){
   return[att[0],att[1],rec[0],bdf[0]];
 }
 
+function pescaMosseBoss(){
+  const tipo=G.stato_boss.tipo;
+  const speciale=POOL_BOSS_SPECIALI[tipo]||POOL_BOSS_SPECIALI[0];
+  let att=[],bdf=[];
+  POOL.forEach(m=>{if(m.tipo==="ATTACCO")att.push(m.id);else if(m.tipo!=="RECUPERO")bdf.push(m.id);});
+  att=shuffle(att);bdf=shuffle(bdf);
+  // slot 0,1: attacchi — slot 2: buff/debuff — slot 3: mossa speciale
+  return[att[0],att[1],bdf[0],speciale.id];
+}
+
 function iniziaBattaglia(){
   const n=G.num_battaglia,ai=tipoAI(n);
   const mH=ai==="BOSS"?1.45:1,mA=ai==="BOSS"?1.15:1,mD=ai==="BOSS"?1.05:1;
@@ -1204,7 +1227,7 @@ function iniziaBattaglia(){
     buf_att:0,time_buf_att:0,deb_att:0,time_deb_att:0,
     buff_def:0,time_buff_def:0,deb_def:0,time_deb_def:0
   };
-  G.ai=ai;G.mosse_n=pescaMosseNemico();G.turno=1;
+  G.ai=ai;G.mosse_n=ai==="BOSS"?pescaMosseBoss():pescaMosseNemico();G.turno=1;
   G._nemicoHealCount=0;G._bossHealCount=0;
   G.stato_boss={tipo:ai==="BOSS"?sorteggiaBoss(n):0,scudo:false,furia:false,danno_last:0};
   G.era_boss=(ai==="BOSS");G.finita=false;
@@ -1435,19 +1458,33 @@ function sceltaAIAv(){
   for(let i=0;i<4;i++){const m=trovaMossa(mn[i]);if(!m)continue;if(m.tipo==="BUFF_ATT"&&n.time_buf_att===0)return i;if(m.tipo==="BUFF_DEF"&&n.time_buff_def===0)return i;if(m.tipo==="DEBUFF_ATT"&&p.time_deb_att===0)return i;if(m.tipo==="DEBUFF_DEF"&&p.time_deb_def===0)return i;}
   return att.length>0?att[Math.floor(Math.random()*att.length)]:Math.floor(Math.random()*4);
 }
+function bossSpezialeAttivo(){
+  const tipo=G.stato_boss.tipo,b=G.nemico,p=G.prot,t=G.turno;
+  switch(tipo){
+    case 0: return t%2===1;                                           // Sfondamento: ogni 2 turni
+    case 1: return p.time_deb_def===0;                               // Provocazione: riapplica quando scaduto
+    case 2: return t%2===0;                                          // Colpo Corrosivo: alterna con attacchi
+    case 3: return b.HP<b.Max_hp*0.65&&b.time_buff_def===0;         // Muro Arcano: sotto 65% HP
+    case 4: return b.time_buf_att===0&&b.HP>b.Max_hp*0.3;           // Precarica: prima che scatti furia
+    case 5: return p.time_deb_att===0;                               // Interferenza: riapplica sempre
+    case 6: return p.time_deb_def===0||t===1;                       // Tossina: subito e riapplica
+    case 7: return t%3===1;                                          // Raffica: ogni 3 turni
+    case 8: return p.time_deb_att===0;                               // Pressione: riapplica sempre
+    default: return false;
+  }
+}
+
 function sceltaAIBoss(){
-  const b=G.nemico,p=G.prot,t=G.turno,mn=G.mosse_n,hr=b.HP/b.Max_hp;
-  if(!G._bossHealCount)G._bossHealCount=0;
-  let s=[0,0,0,0];
-  for(let i=0;i<4;i++){
+  const b=G.nemico,p=G.prot,t=G.turno,mn=G.mosse_n;
+  // priorità: mossa speciale (idx 3) se condizione attiva
+  if(bossSpezialeAttivo())return 3;
+  // altrimenti score sui primi 3 slot (solo ATT e buff/debuff, niente recupero)
+  let s=[0,0,0,-999];
+  for(let i=0;i<3;i++){
     const m=trovaMossa(mn[i]);if(!m)continue;
     let v=0;
     switch(m.tipo){
       case"ATTACCO":{const d=imax(1,m.valore+attaccoEff(b)-difesaEff(p));v=d;if(p.HP<=d*2)v*=1.5;if(b.buf_att>0)v*=0.85;break;}
-      case"RECUPERO":{
-        if(G._bossHealCount>=2){v=-999;break;}// blocca cure consecutive
-        const hm=b.Max_hp-b.HP;v=imin(m.valore,hm)*(hr<.3?3:hr<.5?1.8:hr<.7?1:.3);if(hm===0)v=-999;break;
-      }
       case"BUFF_ATT":v=b.time_buf_att>0?-50:m.valore*m.durata*.8*(t<=2?1.4:1);break;
       case"BUFF_DEF":v=b.time_buff_def>0?-50:m.valore*m.durata*.6*(attaccoEff(p)>b.difesa_base*2?1.5:1);break;
       case"DEBUFF_ATT":v=p.time_deb_att>0?-50:m.valore*m.durata*.7*(attaccoEff(p)>15?1.3:1);break;
@@ -1455,9 +1492,7 @@ function sceltaAIBoss(){
     }
     s[i]=v*(1+(rnd(-10,10)/100));
   }
-  let best=0;for(let i=1;i<4;i++)if(s[i]>s[best])best=i;
-  const mBest=trovaMossa(mn[best]);
-  if(mBest&&mBest.tipo==="RECUPERO")G._bossHealCount++;else G._bossHealCount=0;
+  let best=0;for(let i=1;i<3;i++)if(s[i]>s[best])best=i;
   return best;
 }
 
@@ -1471,20 +1506,30 @@ function tickBuffs(p,nom){
 function turnoNemico(){
   if(G.finita)return;
   const idx=sceltaAI(),m=trovaMossa(G.mosse_n[idx]);if(!m)return;
-  if(G.ai==="BOSS"&&G.stato_boss.tipo===8)eseguiMossaBossAssorbimento(m);
-  else eseguiMossa(m,0,G.nemico,G.prot,"nemico");
+  eseguiMossa(m,0,G.nemico,G.prot,"nemico");
   aggUI();
   const pEl=document.querySelector(".combat-row .frame");
   if(m.tipo==="ATTACCO"&&pEl)flash(pEl,"flash-damage");
   if(G.prot.HP<=0){finePartita(false);return;}
+  // passiva: Doppio Colpo
   if(G.ai==="BOSS"&&G.stato_boss.tipo===7&&G.turno%4===0){
     const attId=G.mosse_n.find(id=>{const mm=trovaMossa(id);return mm&&mm.tipo==="ATTACCO";})||G.mosse_n[0];
     const mm=trovaMossa(attId);
     if(mm){log(`<span class="l-warn">💥 Doppio Colpo!</span>`);eseguiMossa(mm,0,G.nemico,G.prot,"nemico");aggUI();if(pEl)flash(pEl,"flash-damage");if(G.prot.HP<=0){finePartita(false);return;}}
   }
+  // passiva: Rigenerazione
   if(G.ai==="BOSS"&&G.stato_boss.tipo===2){
     const regen=5+Math.floor(G.num_battaglia/2),g=imin(regen,G.nemico.Max_hp-G.nemico.HP);
     if(g>0){G.nemico.HP+=g;log(`<span class="l-heal">✦ Rigenerazione: +${g} HP (${G.nemico.HP}/${G.nemico.Max_hp})</span>`);const el=document.getElementById("nemico-card-wrap");if(el)flash(el,"flash-heal");}
+  }
+  // passiva: Adattamento (+4 DEF ogni 3 turni, max +20)
+  if(G.ai==="BOSS"&&G.stato_boss.tipo===8&&G.turno%3===0){
+    if(!G.stato_boss._adattDef)G.stato_boss._adattDef=0;
+    if(G.stato_boss._adattDef<20){
+      const gain=Math.min(4,20-G.stato_boss._adattDef);
+      G.nemico.difesa_base+=gain;G.stato_boss._adattDef+=gain;
+      log(`<span class="l-warn">🔩 Adattamento — DEF +${gain} permanente! (tot +${G.stato_boss._adattDef})</span>`);aggUI();
+    }
   }
   tickBuffs(G.prot,"Tu");tickBuffs(G.nemico,"Nemico");
   aggUI();G.turno++;
