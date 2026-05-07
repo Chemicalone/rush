@@ -1229,7 +1229,7 @@ function iniziaBattaglia(){
   };
   G.ai=ai;G.mosse_n=ai==="BOSS"?pescaMosseBoss():pescaMosseNemico();G.turno=1;
   G._nemicoHealCount=0;G._bossHealCount=0;
-  G.stato_boss={tipo:ai==="BOSS"?sorteggiaBoss(n):0,scudo:false,furia:false,danno_last:0};
+  G.stato_boss={tipo:ai==="BOSS"?sorteggiaBoss(n):0,scudo:false,furia:false,danno_last:0,speciale_cd:0};
   G.era_boss=(ai==="BOSS");G.finita=false;
   salvaPartita();
   renderBattaglia();
@@ -1271,6 +1271,15 @@ function aggUI(){
   renderStatStrip("player-stats",G.prot);
   renderStatStrip("nemico-stats",G.nemico);
   const lbl=document.getElementById("nemico-label");if(lbl)lbl.textContent=nemicoLabel();
+  // Aggiorna badge cooldown mossa speciale boss
+  if(G.ai==="BOSS"){
+    const cdBadge=document.getElementById("boss-speciale-cd");
+    if(cdBadge){
+      const cd=G.stato_boss?G.stato_boss.speciale_cd||0:0;
+      if(cd>0){cdBadge.textContent=`⏳ Mossa speciale in recupero (${cd} turni)`;cdBadge.style.display="";}
+      else{cdBadge.textContent="⚡ Mossa speciale pronta";cdBadge.style.display="";}
+    }
+  }
 }
 function aggiornaCampagna(){
   const pct=Math.min(100,Math.round((G.num_battaglia-1)/20*100));
@@ -1289,6 +1298,7 @@ function renderBattaglia(){
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.5 5H13L9.5 7.5L11 12L7 9L3 12L4.5 7.5L1 5H5.5Z" fill="#e07070" opacity="0.7"/></svg>
         ${ab.nome} — ${ab.desc}
       </div>`:""}
+      <div id="boss-speciale-cd" style="margin-top:6px;font-size:12px;color:#a0c8e0;font-style:italic;opacity:0.85">⚡ Mossa speciale pronta</div>
     </div>`;
     const nc=document.getElementById("nemico-card-wrap");if(nc)nc.classList.add("frame-boss");
     const na=document.getElementById("nemico-avatar");if(na)na.classList.add("avatar-boss");
@@ -1460,8 +1470,10 @@ function sceltaAIAv(){
 }
 function bossSpezialeAttivo(){
   const tipo=G.stato_boss.tipo,b=G.nemico,p=G.prot,t=G.turno;
+  // Cooldown globale: se la mossa speciale è stata usata di recente, non può essere riusata
+  if((G.stato_boss.speciale_cd||0)>0) return false;
   switch(tipo){
-    case 0: return t%2===1;                                           // Sfondamento: ogni 2 turni
+    case 0: return t%2===1;                                           // Sfondamento: ogni 2 turni (+ cd 4)
     case 1: return p.time_deb_def===0;                               // Provocazione: riapplica quando scaduto
     case 2: return t%2===0;                                          // Colpo Corrosivo: alterna con attacchi
     case 3: return b.HP<b.Max_hp*0.65&&b.time_buff_def===0;         // Muro Arcano: sotto 65% HP
@@ -1477,7 +1489,10 @@ function bossSpezialeAttivo(){
 function sceltaAIBoss(){
   const b=G.nemico,p=G.prot,t=G.turno,mn=G.mosse_n;
   // priorità: mossa speciale (idx 3) se condizione attiva
-  if(bossSpezialeAttivo())return 3;
+  if(bossSpezialeAttivo()){
+    G.stato_boss.speciale_cd=4; // mossa usata, entra in cooldown 4 turni
+    return 3;
+  }
   // altrimenti score sui primi 3 slot (solo ATT e buff/debuff, niente recupero)
   let s=[0,0,0,-999];
   for(let i=0;i<3;i++){
@@ -1532,6 +1547,11 @@ function turnoNemico(){
     }
   }
   tickBuffs(G.prot,"Tu");tickBuffs(G.nemico,"Nemico");
+  // Decrementa cooldown mossa speciale boss
+  if(G.ai==="BOSS"&&(G.stato_boss.speciale_cd||0)>0){
+    G.stato_boss.speciale_cd--;
+    if(G.stato_boss.speciale_cd>0)log(`<span class="l-sys">⏳ Mossa speciale del boss in recupero (${G.stato_boss.speciale_cd} turni)</span>`);
+  }
   aggUI();G.turno++;
   logHr();log(`<span class="l-sys">Turno ${G.turno}</span>`);
   const tb=document.getElementById("turno-badge");if(tb)tb.textContent=`Turno ${G.turno}`;
