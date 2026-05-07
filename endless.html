@@ -1053,14 +1053,14 @@ const ABILITA_BOSS={
 
 /* ── MOSSE SPECIALI BOSS (una per tipo) ── */
 const POOL_BOSS_SPECIALI={
-  0:{id:100,nome:"Sfondamento",         tipo:"ATTACCO",    valore:44,durata:0},
+  0:{id:100,nome:"Sfondamento",         tipo:"ATTACCO",    valore:28,durata:0},
   1:{id:101,nome:"Provocazione",        tipo:"DEBUFF_DEF", valore:15,durata:3},
   2:{id:102,nome:"Colpo Corrosivo",     tipo:"DEBUFF_DEF", valore:10,durata:4},
   3:{id:103,nome:"Muro Arcano",         tipo:"BUFF_DEF",   valore:20,durata:2},
   4:{id:104,nome:"Precarica",           tipo:"BUFF_ATT",   valore:22,durata:2},
   5:{id:105,nome:"Interferenza",        tipo:"DEBUFF_ATT", valore:14,durata:3},
   6:{id:106,nome:"Tossina Amplificata", tipo:"DEBUFF_DEF", valore:12,durata:4},
-  7:{id:107,nome:"Raffica",             tipo:"ATTACCO",    valore:40,durata:0},
+  7:{id:107,nome:"Raffica",             tipo:"ATTACCO",    valore:26,durata:0},
   8:{id:108,nome:"Pressione",           tipo:"DEBUFF_ATT", valore:14,durata:3},
 };
 
@@ -1220,7 +1220,11 @@ function pescaMosseBoss(){
 
 function iniziaBattaglia(){
   const n=G.num_battaglia,ai=tipoAI(n);
-  const mH=ai==="BOSS"?1.45:1,mA=ai==="BOSS"?1.15:1,mD=ai==="BOSS"?1.05:1;
+  // I moltiplicatori del boss crescono con la progressione: il primo boss è più morbido
+  const bossNum=ai==="BOSS"?Math.floor((n-1)/5)+1:0; // 1=primo boss, 2=secondo, ecc.
+  const mH=ai==="BOSS"?1.0+bossNum*0.12:1;   // 1.12 / 1.24 / 1.36 ...  (era sempre 1.45)
+  const mA=ai==="BOSS"?1.0+bossNum*0.06:1;   // 1.06 / 1.12 / 1.18 ...  (era sempre 1.15)
+  const mD=ai==="BOSS"?1.0+bossNum*0.03:1;   // 1.03 / 1.06 / 1.09 ...  (era sempre 1.05)
   G.nemico={
     HP:Math.floor((92+n*10)*mH),Max_hp:Math.floor((92+n*10)*mH),
     attacco_base:Math.floor((7+n*1.3)*mA),difesa_base:Math.floor((5+n*0.7)*mD),
