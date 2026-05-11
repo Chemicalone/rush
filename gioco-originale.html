@@ -1570,6 +1570,13 @@ function endBattle(playerWon) {
     state.defeated[battle.enemyChar] = true;
     saveState();
 
+    // --- FISH REWARD ---
+    const pointsEarned = (battle.enemyChar === 7) ? 50 : 15;
+    const pointsNow = (parseInt(localStorage.getItem('campo-points') || '0')) + pointsEarned;
+    localStorage.setItem('campo-points', pointsNow);
+    log(`🐟 +${pointsEarned} points guadagnati! (totale: ${pointsNow})`, 'victory');
+    // -------------------
+
     if (battle.enemyChar === 7) {
       log('⚡ HAI SCONFITTO KURAGAMI! ⚡', 'victory');
       // Mostra i pulsanti post-battaglia con il pulsante speciale

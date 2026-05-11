@@ -1575,6 +1575,12 @@ function finePartita(vittoria){
     const perc=G.era_boss?45:25,rec=Math.floor(G.prot.Max_hp*perc/100);
     G.prot.HP=imin(G.prot.Max_hp,G.prot.HP+rec);
     log(`<span class="l-heal">✦ Recuperi ${rec} HP (${G.prot.HP}/${G.prot.Max_hp})</span>`);
+    // --- FISH REWARD ---
+    const pointsEarned = G.era_boss ? 40 : 10;
+    const pointsNow = (parseInt(localStorage.getItem('campo-points') || '0')) + pointsEarned;
+    localStorage.setItem('campo-points', pointsNow);
+    log(`<span class="l-win">🐟 +${pointsEarned} points guadagnati! (totale: ${pointsNow})</span>`);
+    // -------------------
     if(G.era_boss){G.prot.Max_hp+=20;G.prot.HP+=20;G.prot.attacco_base+=3;G.prot.difesa_base+=2;log(`<span class="l-win">★ Bonus Boss: Max HP+20 · ATT+3 · DEF+2</span>`);}
     else{G.prot.Max_hp+=8;G.prot.HP+=8;G.prot.attacco_base+=1;G.prot.difesa_base+=1;log(`<span class="l-win">★ Crescita: Max HP+8 · ATT+1 · DEF+1</span>`);}
     aggUI();
